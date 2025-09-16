@@ -6,7 +6,7 @@ import re
 
 import pyspigot as ps  # type: ignore
 
-from org.bukkit import Location, Bukkit, Material, Sound, Registry  # type: ignore
+from org.bukkit import Location, Bukkit, Material, Sound, Registry, Particle, NamespacedKey  # type: ignore
 from org.bukkit.util import Transformation  # type: ignore
 from org.bukkit.block import BlockFace  # type: ignore
 from org.bukkit.entity import Player, EntityType, ItemDisplay  # type: ignore
@@ -25,243 +25,303 @@ from net.kyori.adventure.text.serializer.legacy import LegacyComponentSerializer
 from net.kyori.adventure.text.minimessage import MiniMessage # type: ignore
 from net.kyori.adventure.title import Title # type: ignore
 
+class ConfigManager:
+    '''配置文件管理类'''
+    
+    # 类变量，存储配置实例
+    _config = None
+    _choppingBoardRecipe = None
+    _wokRecipe = None
+    _data = None
+    _prefix = None
+    
+    @staticmethod
+    def _setConfigValue(configFile, path, defaultValue, comments=None):
+        '''为配置项设置默认值和注释
+        
+        参数
+            configFile: 配置文件对象
+            path: 配置项路径
+            defaultValue: 默认值
+            comments: 注释列表(可选)
+        '''
+        if not configFile.contains(path):
+            configFile.setIfNotExists(path, defaultValue)
+            if comments is not None:
+                configFile.setComments(path, comments)
+    
+    @staticmethod
+    def _loadConfig():
+        '''加载并初始化插件配置文件
+        
+        返回
+            配置对象
+        '''
+        configPath = "JiuWu's Kitchen/Config.yml"
+        configFile = ps.config.loadConfig(configPath)
+        
+        # 砧板设置
+        ConfigManager._setConfigValue(configFile,"Setting.ChoppingBoard.Drop",True,[u"砧板处理完成后是否掉落成品"])
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.StealthInteraction", True, [
+            u"是否需要在潜行状态下与砧板交互",
+            u"启用时: 玩家必须潜行才能使用砧板功能",
+            u"禁用时: 玩家可直接交互无需潜行"])
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Custom", False, [
+            u"是否使用自定义方块作为砧板",
+            u"启用时: 使用兼容插件的方块 (例如: CraftEngine)",
+            u"禁用时: 使用原版的方块",
+            "",
+            u"CraftEngine的方块: craftengine <Key>:<ID>"])
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Material", "OAK_LOG")
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.SpaceRestriction", False, [
+            u"砧板上方是否允许存在方块",
+            u"启用时: 砧板上方有方块时无法使用",
+            u"禁用时: 砧板上方允许存在方块"])
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.KitchenKnife.Custom", False, [
+            u"是否使用自定义刀具",
+            u"启用时: 使用兼容插件的物品 (例如: CraftEngine, MMOItems)",
+            u"禁用时: 使用原版物品",
+            "",
+            u"CraftEngine物品: craftengine <Key>:<ID>",
+            u"MMOItems物品: mmoitems <Type>:<ID>"])
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Enable", True, [
+            u"是否启用砧板事件",
+            u"启用时: 切菜时有概率切伤手指"])
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Chance", 10)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Value", 2)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.KitchenKnife.Material", "IRON_AXE")
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Offset.X", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Offset.Y", 1.01)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Offset.Z", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Rotation.X", 90.0)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Rotation.Y", 0.0)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Rotation.Z", 0.0, [
+            u"允许Z轴旋转角度为小数 (0.0, 360.0)",
+            u"也允许为一个范围值随机数 (0.0-360.0)"])
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Scale", 0.5)
+        
+        # 炒锅设置
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.Drop", True, [u"炒锅烹饪完成后是否掉落成品"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.StealthInteraction", True, [
+            u"控制与炒锅交互是否需要潜行",
+            "",
+            u"启用时: 所有炒锅交互 (放入食材/取出食材/翻炒) 都需要潜行状态",
+            u"如果未启用 Setting.Wok.NeedBowl 选项，则空手盛取成品 \"不需要\" 潜行状态",
+            "",
+            u"禁用时: 所有炒锅交互 (放入食材/取出食材/翻炒) 都不需要潜行状态",
+            u"如果未启用 Setting.Wok.NeedBowl 选项，则空手盛取成品 \"需要\" 潜行状态"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.Custom", False, [
+            u"是否使用自定义炒锅方块",
+            u"启用时: 使用兼容插件的方块(例如: CraftEngine)",
+            u"禁用时: 使用原版方块",
+            "",
+            u"CraftEngine的方块: craftengine <Key>:<ID>"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.Material", "IRON_BLOCK")
+        ConfigManager._setConfigValue(
+            configFile, "Setting.Wok.HeatControl", {"CAMPFIRE": 1,"MAGMA_BLOCK": 2,"LAVA": 3,},[
+                u"定义不同热源的烹饪强度",
+                u"数值越高代表火候越猛",
+                "",
+                u"支持 CraftEngine 插件的方块/家具",
+                u"CraftEngine的方块: craftengine <Key>:<ID>: <火候大小>"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.NeedBowl", True, [
+            u"控制从炒锅盛出成品是否需要碗",
+            u"启用时: 必须手持碗才能盛出成品",
+            u"禁用时: 空手即可直接盛出成品",
+            u"注意: 如果启用则盛出操作是否要求潜行由 Setting.Wok.StealthInteraction 控制"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.InvalidRecipeOutput", "STONE", [
+            u"该选项用于当玩家放入不完整或无效的食材组合时",
+            u"将成品盛出后会得到这个物品作为失败产物"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.Dalay", 5, [
+            u"炒锅翻炒食材的延迟时间 (秒)",
+            u"这个值应该小于 Setting.Wok.TimeOut"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.Damage.Enable", True, [
+            u"是否启用炒锅取出食材烫伤事件",
+            u"启用时: 如果锅内存在食材并且已经翻炒过，这时候取出食材将会受到伤害",
+            u"禁用时: 从炒锅取出食材时将不会受到任何伤害"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.Damage.Value", 2)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.Failure.Enable", True, [
+            u"是否启用炒锅烹饪失败事件",
+            u"启用时: 即使食材和步骤都正确，也有概率烹饪失败",
+            u"禁用时: 只要食材和步骤正确，烹饪必定成功"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.Failure.Chance", 5)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.Failure.Type", "BONE_MEAL", [
+            u"炒锅烹饪失败时生成的产物类型"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.TimeOut", 30, [
+            u"单次翻炒操作后的最大等待时间 (秒)",
+            u"每次翻炒操作后会重置此计时器",
+            u"计时结束前未再次翻炒: 锅内食材会烧焦变为失败产物"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.Spatula.Custom", False, [
+            u"是否使用自定义炒菜铲",
+            u"启用时: 使用兼容插件的物品 (例如: CraftEngine, MMOItems)",
+            u"禁用时: 使用原版物品",
+            u"CraftEngine物品: craftengine <Key>:<ID>",
+            u"MMOItems物品: mmoitems <Type>:<ID>"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.Spatula.Material", "IRON_SHOVEL")
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Offset.X", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Offset.Y", 1.01)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Offset.Z", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Rotation.X", 90.0)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Rotation.Y", 0.0)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Rotation.Z", "0.0-90.0", [
+            u"允许Z轴旋转角度为小数 (0.0, 360.0)",
+            u"也允许为一个范围值随机数 (0.0-360.0)"])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Scale", 0.5)
+        
+        # 消息设置
+        messages = {
+            "Messages.Prefix": u"<gray>[ <dark_gray>JiuWu's Kitchen<gray> ]",
+            "Messages.Load": u"{Prefix} <green>欢迎使用 JiuWu's Kitchen! 版本 {Version} 已准备就绪!",
+            "Messages.Reload.LoadPlugin": u"{Prefix} <green>JiuWu's Kitchen 已重新加载!",
+            "Messages.Reload.LoadChoppingBoardRecipe": u"{Prefix} <green>已备好 {Amount} 道砧板料理配方",
+            "Messages.Reload.LoadWokRecipe": u"{Prefix} <green>已备好 {Amount} 道炒锅料理配方",
+            "Messages.InvalidMaterial": u"{Prefix} <red>大厨，这个食材 {Material} 似乎不太对劲...",
+            "Messages.WokTop": u"<gold>炒锅中的食材:",
+            "Messages.WokContent": u" <gray>{ItemName} <dark_gray>× <yellow>{ItemAmount} <gray>翻炒次数: <yellow>{Count}",
+            "Messages.WokDown": u"<gold>总计翻炒次数: <yellow>{Count}",
+            "Messages.WokHeatControl": u"<gold>火候强度: <yellow>{Heat}级",
+            "Messages.NoPermission": u"{Prefix} <red>大厨，你没有特殊的权限哦! ",
+            "Messages.Title.CutHand.MainTitle": u"<red>哎哟! 切到手了! ",
+            "Messages.Title.CutHand.SubTitle": u"<gray>小心刀具! 你受到了 <red>{Damage} <gray>点伤害",
+            "Messages.Title.Scald.MainTitle": u"<red>沸沸沸! 烫烫烫! ",
+            "Messages.Title.Scald.SubTitle": u"<gray>小心热锅! 你受到了 <red>{Damage} <gray>点伤害",
+            "Messages.ActionBar.TakeOffItem": u"<gray>提示：空手轻点砧板可取下食材",
+            "Messages.ActionBar.WokNoItem": u"<red>炒锅空空如也，快放些食材吧! ",
+            "Messages.ActionBar.WokAddItem": u"<green>向炒锅中添加了 <white>{Material} <green>食材! ",
+            "Messages.ActionBar.CutAmount": u"<gray>切菜进度: <green>{CurrentCount} <dark_gray>/ <green>{NeedCount}",
+            "Messages.ActionBar.StirCount": u"<gray>翻炒次数: <green>{Count}",
+            "Messages.ActionBar.ErrorRecipe": u"<red>哎呀，这道菜不是这么做的! 大厨再想想？",
+            "Messages.ActionBar.FailureRecipe": u"<red>烹饪失败...食材浪费了，别灰心! ",
+            "Messages.ActionBar.SuccessRecipe": u"<green>完美! 你成功烹饪了一道美味佳肴! ",
+            "Messages.ActionBar.CannotCut": u"<red>大厨，这个食材不能在这里处理哦! ",
+            "Messages.ActionBar.BurntFood": u"<red>哎呀! 火太大了，菜烧焦了! ",
+            "Messages.ActionBar.StirFriedTooQuickly": u"<red>翻炒得太急了! 食材还没熟透呢! ",
+            "Messages.ActionBar.WokStirItem": u"<green>正在翻炒 <gray>{Material}...",
+            "Messages.PluginLoad.CraftEngine": u"{Prefix} <green>检测到 CraftEngine 插件",
+            "Messages.PluginLoad.MMOItems": u"{Prefix} <green>检测到 MMOItems 插件"
+        }
+        
+        for key, value in messages.items(): ConfigManager._setConfigValue(configFile, key, value)
+        
+        # 音效设置
+        ConfigManager._setConfigValue(
+            configFile, "Setting.Sound.ChoppingBoardAddItem", u"entity.item_frame.add_item", [u"砧板添加食材的音效"])
+        ConfigManager._setConfigValue(
+            configFile, "Setting.Sound.ChoppingBoardCutItem", u"item.axe.strip", [u"砧板切割食材的音效"])
+        ConfigManager._setConfigValue(
+            configFile, "Setting.Sound.ChoppingBoardCutHand", u"entity.player.hurt", [u"砧板切割时手被切伤的音效"])
+        ConfigManager._setConfigValue(
+            configFile, "Setting.Sound.WokAddItem", u"block.anvil.hit", [u"炒锅添加食材的音效"])
+        ConfigManager._setConfigValue(
+            configFile, "Setting.Sound.WokStirItem", u"block.lava.extinguish", [u"炒锅翻炒食材的音效"])
+        ConfigManager._setConfigValue(
+            configFile, "Setting.Sound.WokScald", u"entity.player.hurt_on_fire", [u"炒锅翻炒时手被烫伤的音效"])
+        ConfigManager._setConfigValue(
+            configFile, "Setting.Sound.WokTakeOffItem", u"entity.item.pickup", [u"炒锅取出食材的音效"])
+        
+        # 粒子设置
+        ConfigManager._setConfigValue(
+            configFile, "Setting.Particle.ChoppingBoardCutItem.Type", "CLOUD",[u"砧板切割食材的粒子"])
+        ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.Amount", 10)
+        ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.OffsetX", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.OffsetY", 1.0)
+        ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.OffsetZ", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.Speed", 0.05)
+        
+        ConfigManager._setConfigValue(
+            configFile, "Setting.Particle.WokStirItem.Type", "CAMPFIRE_COSY_SMOKE",[u"炒锅翻炒食材的粒子"])
+        ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.Amount", 10)
+        ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.OffsetX", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.OffsetY", 1.0)
+        ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.OffsetZ", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.Speed", 0.05)
+        
+        configFile.save()
+        return ps.config.loadConfig(configPath)
+    
+    @staticmethod
+    def _loadChoppingBoardRecipe():
+        '''加载砧板配方配置文件
+        
+        返回: 
+            对象: 砧板配方文件
+        '''
+        choppingBoardRecipePath = "JiuWu's Kitchen/Recipe/ChoppingBoard.yml"
+        return ps.config.loadConfig(choppingBoardRecipePath)
+    
+    @staticmethod
+    def _loadWokRecipe():
+        '''加载炒锅配方配置文件
+        
+        返回: 
+            对象: 砧板配方文件
+        '''
+        wokRecipePath = "JiuWu's Kitchen/Recipe/Wok.yml"
+        return ps.config.loadConfig(wokRecipePath)
+    
+    @staticmethod
+    def _loadData():
+        '''加载数据文件
+        
+        返回:
+            对象: 数据文件
+        '''
+        dataPath = "JiuWu's Kitchen/Data.yml"
+        return ps.config.loadConfig(dataPath)
+    
+    @staticmethod
+    def getConfig():
+        '''获取主配置对象'''
+        if ConfigManager._config is None:
+            ConfigManager._config = ConfigManager._loadConfig()
+        return ConfigManager._config
+    
+    @staticmethod
+    def getChoppingBoardRecipe():
+        '''获取砧板配方配置'''
+        if ConfigManager._choppingBoardRecipe is None:
+            ConfigManager._choppingBoardRecipe = ConfigManager._loadChoppingBoardRecipe()
+        return ConfigManager._choppingBoardRecipe
+    
+    @staticmethod
+    def getWokRecipe():
+        '''获取炒锅配方配置'''
+        if ConfigManager._wokRecipe is None:
+            ConfigManager._wokRecipe = ConfigManager._loadWokRecipe()
+        return ConfigManager._wokRecipe
+    
+    @staticmethod
+    def getData():
+        '''获取数据文件'''
+        if ConfigManager._data is None:
+            ConfigManager._data = ConfigManager._loadData()
+        return ConfigManager._data
+    
+    @staticmethod
+    def getPrefix():
+        '''获取消息前缀'''
+        if ConfigManager._prefix is None:
+            ConfigManager._prefix = ConfigManager.getConfig().getString("Messages.Prefix")
+        return ConfigManager._prefix
+    
+    @staticmethod
+    def reloadAll():
+        '''重新加载所有配置文件'''
+        ConfigManager._config = ConfigManager._loadConfig()
+        ConfigManager._choppingBoardRecipe = ConfigManager._loadChoppingBoardRecipe()
+        ConfigManager._wokRecipe = ConfigManager._loadWokRecipe()
+        ConfigManager._data = ConfigManager._loadData()
+
+# 修改全局变量赋值
+Config = ConfigManager.getConfig()
+Prefix = ConfigManager.getConfig().getString("Messages.Prefix")
+ChoppingBoardRecipe = ConfigManager.getChoppingBoardRecipe()
+WokRecipe = ConfigManager.getWokRecipe()
+Data = ConfigManager.getData()
+Console = Bukkit.getServer().getConsoleSender()
+
 CraftEngineAvailable = False
 MMOItemsAvailable = False
-
-def SetDefaultWithComments(ConfigFile, Path, DefaultValue, Comments = None):
-    '''为配置项设置默认值和注释
-
-    参数
-        ConfigFile: 配置文件对象
-        Path: 配置项路径
-        DefaultValue: 默认值
-        Comments: 注释列表(可选)
-    '''
-    if not ConfigFile.contains(Path):
-        ConfigFile.setIfNotExists(Path, DefaultValue)
-        if Comments is not None: ConfigFile.setComments(Path, Comments)
-
-def LoadConfig():
-    '''加载并初始化插件配置文件
-
-    返回
-        配置对象
-    '''
-    ConfigPath = "JiuWu's Kitchen/Config.yml"
-    ConfigFile = ps.config.loadConfig(ConfigPath)
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.Drop", True, [u"砧板处理完成后是否掉落成品"])
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.StealthInteraction", True, [
-        u"是否需要在潜行状态下与砧板交互",
-        u"启用时: 玩家必须潜行才能使用砧板功能",
-        u"禁用时: 玩家可直接交互无需潜行"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.Custom", False, [
-        u"是否使用自定义方块作为砧板",
-        u"启用时: 使用兼容插件的方块 (例如: CraftEngine)",
-        u"禁用时: 使用原版的方块"
-        "",
-        u"CraftEngine的方块: craftengine <Key>:<ID>"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.Material", "OAK_LOG")
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.SpaceRestriction", False, [
-        u"砧板上方是否允许存在方块",
-        u"启用时: 砧板上方有方块时无法使用",
-        u"禁用时: 砧板上方允许存在方块"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.KitchenKnife.Custom", False, [
-        u"是否使用自定义刀具",
-        u"启用时: 使用兼容插件的物品 (例如: CraftEngine, MMOItems)",
-        u"禁用时: 使用原版物品"
-        "",
-        u"CraftEngine物品: craftengine <Key>:<ID>",
-        u"MMOItems物品: mmoitems <Type>:<ID>"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.Damage.Enable", True, [
-        u"是否启用砧板事件",
-        u"启用时: 切菜时有概率切伤手指"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.Damage.Chance", 10)
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.Damage.Value", 2)
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.KitchenKnife.Material", "IRON_AXE")
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.DisplayEntity.Offset.X", 0.5)
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.DisplayEntity.Offset.Y", 1.0)
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.DisplayEntity.Offset.Z", 0.5)
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.DisplayEntity.Rotation.X", 90.0)
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.DisplayEntity.Rotation.Y", 0.0)
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.DisplayEntity.Rotation.Z", 0.0, [
-        u"允许Z轴旋转角度为小数 (0.0, 360.0)",
-        u"也允许为一个范围值随机数 (0.0-360.0)"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.ChoppingBoard.DisplayEntity.Scale", 0.5)
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.Drop", True, [
-        u"炒锅烹饪完成后是否掉落成品"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.StealthInteraction", True, [
-        u"控制与炒锅交互是否需要潜行",
-        "",
-        u"启用时: 所有炒锅交互 (放入食材/取出食材/翻炒) 都需要潜行状态",
-        u"如果未启用 Setting.Wok.NeedBowl 选项，则空手盛取成品 \"不需要\" 潜行状态",
-        "",
-        u"禁用时: 所有炒锅交互 (放入食材/取出食材/翻炒) 都不需要潜行状态",
-        u"如果未启用 Setting.Wok.NeedBowl 选项，则空手盛取成品 \"需要\" 潜行状态"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.Custom", False, [
-        u"是否使用自定义炒锅方块",
-        u"启用时: 使用兼容插件的方块(例如: CraftEngine)",
-        u"禁用时: 使用原版方块"
-        "",
-        u"CraftEngine的方块: craftengine <Key>:<ID>"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.Material", "IRON_BLOCK")
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.HeatControl", {
-        "CAMPFIRE": 1,
-        "MAGMA_BLOCK": 2,
-        "LAVA": 3,
-    }, [
-        u"定义不同热源的烹饪强度",
-        u"数值越高代表火候越猛",
-        "",
-        u"支持 CraftEngine 插件的方块/家具",
-        u"CraftEngine的方块: craftengine <Key>:<ID>: <火候大小>"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.NeedBowl", True, [
-        u"控制从炒锅盛出成品是否需要碗",
-        u"启用时: 必须手持碗才能盛出成品",
-        u"禁用时: 空手即可直接盛出成品",
-        u"注意: 如果启用则盛出操作是否要求潜行由 Setting.Wok.StealthInteraction 控制"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.InvalidRecipeOutput", "STONE", [
-        u"该选项用于当玩家放入不完整或无效的食材组合时",
-        u"将成品盛出后会得到这个物品作为失败产物"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.Dalay", 5, [
-        u"炒锅翻炒食材的延迟时间 (秒)",
-        u"这个值应该小于 Setting.Wok.TimeOut"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.Damage.Enable", True, [
-        u"是否启用炒锅取出食材烫伤事件",
-        u"启用时: 如果锅内存在食材并且已经翻炒过，这时候取出食材将会受到伤害",
-        u"禁用时: 从炒锅取出食材时将不会受到任何伤害"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.Damage.Value", 2)
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.Failure.Enable", True, [
-        u"是否启用炒锅烹饪失败事件",
-        u"启用时: 即使食材和步骤都正确，也有概率烹饪失败",
-        u"禁用时: 只要食材和步骤正确，烹饪必定成功"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.Failure.Chance", 5)
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.Failure.Type", "BONE_MEAL", [
-        u"炒锅烹饪失败时生成的产物类型"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.TimeOut", 30, [
-        u"单次翻炒操作后的最大等待时间 (秒)",
-        u"每次翻炒操作后会重置此计时器",
-        u"计时结束前未再次翻炒: 锅内食材会烧焦变为失败产物"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.Spatula.Custom", False, [
-        u"是否使用自定义炒菜铲",
-        u"启用时: 使用兼容插件的物品 (例如: CraftEngine, MMOItems)",
-        u"禁用时: 使用原版物品",
-        u"CraftEngine物品: craftengine <Key>:<ID>",
-        u"MMOItems物品: mmoitems <Type>:<ID>"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.Spatula.Material", "IRON_SHOVEL")
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.DisplayEntity.Offset.X", 0.5)
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.DisplayEntity.Offset.Y", 1.0)
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.DisplayEntity.Offset.Z", 0.5)
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.DisplayEntity.Rotation.X", 90.0)
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.DisplayEntity.Rotation.Y", 0.0)
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.DisplayEntity.Rotation.Z", "0.0-90.0", [
-        u"允许Z轴旋转角度为小数 (0.0, 360.0)",
-        u"也允许为一个范围值随机数 (0.0-360.0)"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Wok.DisplayEntity.Scale", 0.5)
-    SetDefaultWithComments(ConfigFile, "Messages.Prefix", u"<gray>[ <dark_gray>JiuWu\'s Kitchen <gray>]")
-    SetDefaultWithComments(ConfigFile, "Messages.Load", u"{Prefix} <green>欢迎使用 JiuWu\'s Kitchen {Version} 插件! 厨房已就绪! 料理正等待着你的创造!")
-    SetDefaultWithComments(ConfigFile, "Messages.Reload.LoadPlugin", u"{Prefix} <green>成功重载 JiuWu\'s Kitchen 插件!")
-    SetDefaultWithComments(ConfigFile, "Messages.Reload.LoadChoppingBoardRecipe",u"{Prefix} <green>成功加载 {Amount} 个砧板配方")
-    SetDefaultWithComments(ConfigFile, "Messages.Reload.LoadWokRecipe",u"{Prefix} <green>成功加载 {Amount} 个炒锅配方")
-    SetDefaultWithComments(ConfigFile, "Messages.InvalidMaterial", u"{Prefix} <red>无效的 {Material} 物品材料")
-    SetDefaultWithComments(ConfigFile, "Messages.WokTop", u"<aqua>炒锅中的食材:")
-    SetDefaultWithComments(ConfigFile, "Messages.WokContent",u" <gray>{ItemName} <dark_gray>× <yellow>{ItemAmount} <gray>已翻炒: <yellow>{Count}")
-    SetDefaultWithComments(ConfigFile, "Messages.WokDown", u"<aqua>总计翻炒次数: <yellow>{Count}")
-    SetDefaultWithComments(ConfigFile, "Messages.WokHeatControl", u"<aqua>热源等级: <yellow>{Heat}")
-    SetDefaultWithComments(ConfigFile, "Messages.NoPermission", u"{Prefix} <red>你没有权限执行此操作!")
-    SetDefaultWithComments(ConfigFile, "Messages.Title.CutHand.MainTitle",u"<red>✄ 哎呀! 切到手了!")
-    SetDefaultWithComments(ConfigFile, "Messages.Title.CutHand.SubTitle",u"<gray>你受到了 <red>{Damage} <gray>点伤害! 小心点呀大厨!")
-    SetDefaultWithComments(ConfigFile, "Messages.Title.Scald.MainTitle", u"<red>🔥 沸沸沸! 烫烫烫!")
-    SetDefaultWithComments(ConfigFile, "Messages.Title.Scald.SubTitle", u"<gray>你受到了 <red>{Damage} <gray>点伤害! 小心点呀大厨!")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.TakeOffItem", u"<gray>提示: 空手右键点击砧板可取下食材")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.WokNoItem", u"<red>炒锅中没有任何食材!")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.AddWokItem", u"<green>向炒锅添加了 {Material} 食材")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.CutAmount", u"<gray>切割进度: <green>{CurrentCount} <dark_gray>/ <green>{NeedCount}")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.StirCount", u"<gray>翻炒次数: <green>{Count}")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.ErrorRecipe", u"<red>✗ 配方错误! 你可真失败!")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.FailureRecipe",u"<red>✗ 失败的配方! 真是浪费这么好的食材了!")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.SuccessRecipe",u"<green>✓ 成功的配方! 不愧是大厨!")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.CannotCut",u"<red>✗ 这个食材无法处理")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.WokAddItem",u"<green>向炒锅添加了 <gray>{Material} <green>食材")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.BurntFood",u"<red>✗ 糟糕透了! 食材全糊了!")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.StirFriedTooQuickly", u"<red>✗ 炒锅翻炒太快了! 食材都受热不均了!")
-    SetDefaultWithComments(ConfigFile, "Messages.ActionBar.WokStirItem",u"<green>炒锅正在翻炒 <gray>{Material} <green>食材")
-    SetDefaultWithComments(ConfigFile, "Messages.PluginLoad.CraftEngine", u"{Prefix} <green>检测到 CraftEngine 插件")
-    SetDefaultWithComments(ConfigFile, "Messages.PluginLoad.MMOItems", u"{Prefix} <green>检测到 MMOItems 插件")
-    SetDefaultWithComments(ConfigFile, "Setting.Sound.ChoppingBoardAddItem", u"entity.item_frame.add_item", [
-        u"砧板添加食材的音效"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Sound.ChoppingBoardCutItem", u"item.axe.strip", [
-        u"砧板切割食材的音效"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Sound.ChoppingBoardCutHand", u"entity.player.hurt", [
-        u"砧板切割时手被切伤的音效"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Sound.WokAddItem", u"block.anvil.hit", [
-        u"炒锅添加食材的音效"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Sound.WokStirItem", u"block.lava.extinguish", [
-        u"炒锅翻炒食材的音效"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Sound.WokScald", u"entity.player.hurt_on_fire", [
-        u"炒锅翻炒时手被烫伤的音效"
-    ])
-    SetDefaultWithComments(ConfigFile, "Setting.Sound.WokTakeOffItem", u"entity.item.pickup", [
-        u"炒锅取出食材的音效"
-    ])
-    ConfigFile.save()
-    return ps.config.loadConfig(ConfigPath)
-
-def LoadChoppingBoardRecipe():
-    '''加载砧板配方配置文件
-
-    返回: 
-        对象: 砧板配方文件
-    '''
-    ChoppingBoardRecipePath = "JiuWu's Kitchen/Recipe/ChoppingBoard.yml"
-    return ps.config.loadConfig(ChoppingBoardRecipePath)
-
-def LoadWokRecipe():
-    '''加载炒锅配方配置文件
-
-    返回: 
-        对象: 砧板配方文件
-    '''
-    WokRecipePath = "JiuWu's Kitchen/Recipe/Wok.yml"
-    return ps.config.loadConfig(WokRecipePath)
-
-def LoadData():
-    '''加载数据文件
-
-    返回:
-        对象: 数据文件
-    '''
-    DataPath = "JiuWu's Kitchen/Data.yml"
-    return ps.config.loadConfig(DataPath)
-
-Config = LoadConfig()
-Prefix = Config.getString("Messages.Prefix")
-ChoppingBoardRecipe = LoadChoppingBoardRecipe()
-WokRecipe = LoadWokRecipe()
-Data = LoadData()
 
 def ServerPluginLoad():
     '''
@@ -270,10 +330,7 @@ def ServerPluginLoad():
     global CraftEngineAvailable, MMOItemsAvailable
     CraftEngineAvailable = Bukkit.getPluginManager().isPluginEnabled("CraftEngine")
     if CraftEngineAvailable:
-        MiniMessageUtils.sendMessage(
-            Bukkit.getServer().getConsoleSender(),
-            Config.getString("Messages.PluginLoad.CraftEngine"), {"Prefix": Prefix}
-        )
+        MiniMessageUtils.sendMessage(Console,Config.getString("Messages.PluginLoad.CraftEngine"), {"Prefix": Prefix})
         from net.momirealms.craftengine.bukkit.api.event import (  # type: ignore
             CustomBlockInteractEvent,
             CustomBlockBreakEvent,
@@ -282,10 +339,7 @@ def ServerPluginLoad():
         ps.listener.registerListener(BreakCraftEngineBlock, CustomBlockBreakEvent)
     MMOItemsAvailable = Bukkit.getPluginManager().isPluginEnabled("MMOItems")
     if MMOItemsAvailable:
-        MiniMessageUtils.sendMessage(
-            Bukkit.getServer().getConsoleSender(),
-            Config.getString("Messages.PluginLoad.MMOItems"), {"Prefix": Prefix}
-        )
+        MiniMessageUtils.sendMessage(Console,Config.getString("Messages.PluginLoad.MMOItems"), {"Prefix": Prefix})
 
 def InteractionVanillaBlock(E):
     '''处理玩家与原版方块的交互事件
@@ -337,8 +391,8 @@ def InteractionVanillaBlock(E):
                     if not ClickPlayer.isSneaking(): return
                 else:
                     if ClickPlayer.isSneaking(): return
-                MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
-                if not ToolUtils.isToolItem(MainHandItem, Config, "Wok"): return
+                MainHandItem = ClickPlayer.getInventory().getItemInMainHand()  
+                if not ToolUtils.isToolItem(MainHandItem, Config, "Wok",  "Spatula"): return
                 FileKey = GetFileKey(ClickBlock)
                 HasExistingDisplay = Data.get("Wok")
                 if HasExistingDisplay: HasExistingDisplay = HasExistingDisplay.contains(FileKey)
@@ -351,7 +405,6 @@ def InteractionVanillaBlock(E):
                     MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
                 return
             if E.getAction() != Action.LEFT_CLICK_BLOCK: return
-            E.setCancelled(True)
             FileKey = GetFileKey(ClickBlock)
             HasExistingDisplay = Data.get("Wok")
             if HasExistingDisplay: HasExistingDisplay = HasExistingDisplay.contains(FileKey)
@@ -368,6 +421,7 @@ def InteractionVanillaBlock(E):
                         GetWokOutput(Data, Config, FileKey, ClickPlayer, ClickBlock, HeatLevel)
                         return
                     return
+            E.setCancelled(True)
             InteractionWok(ClickPlayer, ClickBlock, Config, FileKey, HasExistingDisplay, HeatLevel)
             return
 
@@ -427,7 +481,7 @@ def InteractionCraftEngineBlock(E):
                 else:
                     if ClickPlayer.isSneaking(): return
                 MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
-                if not ToolUtils.isToolItem(MainHandItem, Config, "Wok"): return
+                if not ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula"): return
                 FileKey = GetFileKey(ClickBlock)
                 HasExistingDisplay = Data.get("Wok")
                 if HasExistingDisplay: HasExistingDisplay = HasExistingDisplay.contains(FileKey)
@@ -589,7 +643,7 @@ def InteractionChoppingBoard(ClickPlayer, Block, Config, FileKey, HasExistingDis
     MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
     if MainHandItem and MainHandItem.getType() != Material.AIR:
         if HasExistingDisplay:
-            if ToolUtils.isToolItem(MainHandItem, Config, "ChoppingBoard"):
+            if ToolUtils.isToolItem(MainHandItem, Config, "ChoppingBoard", "KitchenKnife"):
                 BlockLoc = Block.getLocation()
                 HandleCutting(ClickPlayer,BlockLoc.getWorld(),BlockLoc.getX(),BlockLoc.getY(),BlockLoc.getZ(),Config)
                 return
@@ -636,7 +690,7 @@ def HandleCutting(Player, World, X, Y, Z, Config):
     if not ItemDisplayEntity: return
     DisplayItem = ItemDisplayEntity.getItemStack()
     if not DisplayItem: return
-    RecipeConfig = LoadChoppingBoardRecipe()
+    RecipeConfig = ChoppingBoardRecipe
     ItemMaterial = ToolUtils.getItemIdentifier(DisplayItem)
     RequiredCuts = RecipeConfig.getInt(ItemMaterial + ".Count")
     ResultMaterial = RecipeConfig.getString(ItemMaterial + ".Output")
@@ -649,6 +703,21 @@ def HandleCutting(Player, World, X, Y, Z, Config):
     CurrentCuts += 1
     Data.set(FileKey, CurrentCuts)
     Data.save()
+    particleType = Config.getString("Setting.Particle.ChoppingBoardCutItem.Type", "CLOUD")
+    particleAmount = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Amount")
+    particleoffsetX = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Xoffset")
+    particleoffsetY = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Yoffset")
+    particleoffsetZ = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Zoffset")
+    particleSpeed = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Speed")
+    particleLocation = Location(World, X + 0.5, Y + 1.1, Z + 0.5)
+    PlayParticle(
+        particleLocation,
+        particleType,
+        particleAmount,
+        particleoffsetX,
+        particleoffsetY,
+        particleoffsetZ,
+        particleSpeed)
     if (Config.getBoolean("Setting.ChoppingBoard.Damage.Enable")
         and
         random.randint(1, 100) <= Config.getInt("Setting.ChoppingBoard.Damage.Chance")):
@@ -656,17 +725,18 @@ def HandleCutting(Player, World, X, Y, Z, Config):
         Player.damage(DamageValue)
         MiniMessageUtils.playSound(Player, Config.get("Setting.Sound.ChoppingBoardCutHand"))
         MiniMessageUtils.sendTitle(Player,Config.getString("Messages.Title.CutHand.MainTitle"),
-                                   Config.getString("Messages.Title.CutHand.SubTitle"),{"Damage": str(DamageValue)})
+                                   Config.getString("Messages.Title.CutHand.SubTitle"),
+                                   {"Damage": str(DamageValue)})
     MiniMessageUtils.sendActionBar(Player,Config.getString("Messages.ActionBar.CutAmount"),
                                    {"CurrentCount": str(CurrentCuts), "NeedCount": str(RequiredCuts)})
     MiniMessageUtils.playSound(Player, Config.get("Setting.Sound.ChoppingBoardCutItem"))
     if CurrentCuts >= RequiredCuts:
         if " " in ResultMaterial: GiveItem = ResultMaterial
         else: GiveItem = RequiredCuts
-        ResultItemStack = ToolUtils.createItemStack(GiveItem)
+        GiveAmount = RecipeConfig.getInt(ItemMaterial + ".OutputAmount")
+        ResultItemStack = ToolUtils.createItemStack(GiveItem, GiveAmount)
         if not ResultItemStack:
-            MiniMessageUtils.sendMessage(Bukkit.getServer().getConsoleSender(),
-                                         Config.getString("Messages.InvalidMaterial"),
+            MiniMessageUtils.sendMessage(Console,Config.getString("Messages.InvalidMaterial"),
                                          {"Prefix": Config.getString("Messages.Prefix"), "Material": ResultMaterial})
             return
         if ResultItemStack is not None:
@@ -679,8 +749,7 @@ def HandleCutting(Player, World, X, Y, Z, Config):
             Data.set(FileKey, None)
             Data.save()
         else:
-            MiniMessageUtils.sendMessage(Bukkit.getServer().getConsoleSender(),
-                                         Config.getString("Messages.InvalidMaterial"),
+            MiniMessageUtils.sendMessage(Console,Config.getString("Messages.InvalidMaterial"),
                                          {"Prefix": Config.getString("Messages.Prefix"), "Material": ResultMaterial})
             return
 
@@ -697,19 +766,17 @@ def InteractionWok(ClickPlayer, ClickBlock, Config, FileKey, HasExistingDisplay,
     '''
     MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
     if MainHandItem and MainHandItem.getType() != Material.AIR:
-        if ToolUtils.isToolItem(MainHandItem, Config, "Wok"):
+        if ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula"):
             ItemList = Data.getStringList("Wok." + FileKey + ".Items")
             if not ItemList:
-                MiniMessageUtils.sendActionBar(ClickPlayer,
-                                               Config.getString("Messages.ActionBar.WokNoItem"))
+                MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.WokNoItem"))
                 return
             LastStirTime = Data.getLong("Wok." + FileKey + ".LastStirTime", 0)
             StirCount = Data.getInt("Wok." + FileKey + ".Count", 0)
             CurrentTime = System.currentTimeMillis()
             if StirCount != 0:
                 if CurrentTime - LastStirTime > Config.getInt("Setting.Wok.TimeOut") * 1000:
-                    MiniMessageUtils.sendActionBar(ClickPlayer,
-                                                   Config.getString("Messages.ActionBar.BurntFood"))
+                    MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.BurntFood"))
                     return
             StirFriedTime = Data.getLong("Wok." + FileKey + ".StirFriedTime", 0)
             if StirFriedTime != 0:
@@ -717,6 +784,21 @@ def InteractionWok(ClickPlayer, ClickBlock, Config, FileKey, HasExistingDisplay,
                     MiniMessageUtils.sendActionBar(ClickPlayer,
                                                    Config.getString("Messages.ActionBar.StirFriedTooQuickly"))
                     return
+            particleType = Config.getString("Setting.Particle.WokStirItem.Type", "CAMPFIRE_COSY_SMOKE")
+            particleAmount = Config.getInt("Setting.Particle.WokStirItem.Amount")
+            particleoffsetX = Config.getInt("Setting.Particle.WokStirItem.Xoffset")
+            particleoffsetY = Config.getInt("Setting.Particle.WokStirItem.Yoffset")
+            particleoffsetZ = Config.getInt("Setting.Particle.WokStirItem.Zoffset")
+            particleSpeed = Config.getInt("Setting.Particle.WokStirItem.Speed")
+            particleLocation = ClickBlock.getLocation().add(0.5, 1.1, 0.5)
+            PlayParticle(
+                particleLocation,
+                particleType,
+                particleAmount,
+                particleoffsetX,
+                particleoffsetY,
+                particleoffsetZ,
+                particleSpeed)
             Data.set("Wok." + FileKey + ".StirFriedTime", System.currentTimeMillis())
             Data.set("Wok." + FileKey + ".LastStirTime", System.currentTimeMillis())
             StirCount += 1
@@ -846,6 +928,7 @@ def OutputWokInfo(ClickPlayer, Config, FileKey, HeatLevel):
     for Item in ItemList:
         Parts = Item.split(" ", 3)
         PluginName, ItemName, Amount, Count = Parts
+        ItemStack = ToolUtils.createItemStack(Item)
         MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokContent"),
                                      {"ItemName": ToolUtils.getItemDisplayName(ItemStack),
                                       "ItemAmount": Amount, "Count": Count})
@@ -1013,21 +1096,21 @@ class ToolUtils:
     MINECRAFT = "minecraft"
     
     @staticmethod
-    def isToolItem(Item, Config, Type):
+    def isToolItem(Item, Config, Type, Tool):
         '''判断物品是否为指定的工具类型
         
         参数:
             Item: 物品对象
             Config: 配置对象
             Type: 工具类型
-        
+            Tool: 工具名称
         返回:
             bool: 是否为指定工具
         '''
         if not Item or Item.getType() == Material.AIR:
             return False
-        CustomSetting = Config.getBoolean("Setting." + Type + ".KitchenKnife.Custom")
-        MaterialSetting = Config.getString("Setting." + Type + ".KitchenKnife.Material")
+        CustomSetting = Config.getBoolean("Setting." + Type + "." + Tool + ".Custom")
+        MaterialSetting = Config.getString("Setting." + Type + "." + Tool + ".Material")
         if CustomSetting:
             if ' ' in MaterialSetting:
                 Identifier, ID = MaterialSetting.split(' ', 1)
@@ -1121,8 +1204,10 @@ class ToolUtils:
         if not ItemKey: return None
         Parts = ItemKey.split(" ")
         if len(Parts) < 1: return None
+        if len(Parts) < 3: Amount = Amount
+        else: Amount = int(Parts[2])
         ItemType = Parts[0]
-        Amount = int(Parts[2])
+        
         # 根据物品类型创建不同的物品栈
         if ItemType == ToolUtils.MINECRAFT:
             return ToolUtils.createMinecraftItem(Parts, Amount)
@@ -1183,7 +1268,6 @@ class ToolUtils:
         
         参数:
             Item: 物品对象
-        
         返回:
             Obj: 显示名称字符串或组件
         '''
@@ -1320,6 +1404,40 @@ def CalculateDisplayLocation(BaseLocation, Config, Target, ExtraOffset = 0):
         BaseLocation.getY() + Offset_Y + ExtraOffset,
         BaseLocation.getZ() + Offset_Z)
 
+def PlayParticle(location, particleType, count=5, offsetX=0.2, offsetY=0.2, offsetZ=0.2, speed=0.1, force=True):
+    '''播放粒子效果
+    
+    参数:
+        location: 粒子生成的位置 (Location对象)
+        particleType: 粒子类型 (字符串或Particle枚举)
+        count: 粒子数量 (默认5)
+        offsetX: X轴偏移范围 (默认0.2)
+        offsetY: Y轴偏移范围 (默认0.2)
+        offsetZ: Z轴偏移范围 (默认0.2)
+        speed: 粒子速度 (默认0.1)
+        force: 是否强制显示给远处玩家 (默认True)
+    '''
+    try:
+        # 如果particleType是字符串，尝试转换为Particle枚举
+        if isinstance(particleType, basestring):  # type: ignore
+            try: particleType = Particle.valueOf(particleType.upper())
+            except: particleType = Particle.CLOUD
+        
+        # 播放粒子效果
+        location.getWorld().spawnParticle(
+            particleType,
+            location,
+            count,
+            offsetX,
+            offsetY,
+            offsetZ,
+            speed,
+            None,  # 额外的粒子数据，默认为None
+            force
+        )
+    except Exception as e:
+        pass
+
 ps.listener.registerListener(InteractionVanillaBlock, PlayerInteractEvent)
 ps.listener.registerListener(BreakVanillaBlock, BlockBreakEvent)
 
@@ -1333,14 +1451,14 @@ def CommandExecute(sender, label, args):
     返回
         命令执行结果
     '''
+    if len(args) == 0: return False
     if args[0] == "reload":
         if isinstance(sender, Player):
             if not sender.hasPermission("jiuwukitchen.command.reload"):
-                MiniMessageUtils.sendMessage(sender, Config.getString("Messages.NoPermission"),
-                                             {"Prefix": Prefix})
+                MiniMessageUtils.sendMessage(sender, Config.getString("Messages.NoPermission"),{"Prefix": Prefix})
                 return False
         ReloadPlugin(sender)
-        MiniMessageUtils.sendMessage(sender, Config.getString("Messages.Reload.LoadPlugin"))
+        MiniMessageUtils.sendMessage(sender, Config.getString("Messages.Reload.LoadPlugin"), {"Prefix": Prefix})
         return True
     if isinstance(sender, Player):
         if args[0] == "clear":
@@ -1365,15 +1483,13 @@ def CommandExecute(sender, label, args):
             else:
                 MiniMessageUtils.sendMessage(sender, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
                 return False
+        return False
     return False
 
-def ReloadPlugin(Target = Bukkit.getServer().getConsoleSender()):
-    Config.reload()
-    ChoppingBoardRecipe.reload()
-    Data.reload()
-    WokRecipe.reload()
-    ChoppingBoardRecipeAmount = LoadChoppingBoardRecipe().getKeys(False).size()
-    WokRecipeAmount = LoadWokRecipe().getKeys(False).size()
+def ReloadPlugin(Target = Console):
+    ConfigManager.reloadAll()
+    ChoppingBoardRecipeAmount = ChoppingBoardRecipe.getKeys(False).size()
+    WokRecipeAmount = WokRecipe.getKeys(False).size()
     MiniMessageUtils.sendMessage(Target, Config.getString("Messages.Reload.LoadChoppingBoardRecipe"),
                                  {"Prefix": Prefix, "Amount": int(ChoppingBoardRecipeAmount)})
     MiniMessageUtils.sendMessage(Target, Config.getString("Messages.Reload.LoadWokRecipe"),
@@ -1657,22 +1773,21 @@ class MiniMessageUtils:
         '''
         if not isinstance(Target, Player) or SoundStr is None:
             return
-        
         # 如果已经是Sound枚举实例，直接使用
         if isinstance(SoundStr, Sound):
             Target.playSound(Target.getLocation(), SoundStr, Volume, Pitch)
             return
-        
         # 处理字符串类型的声音
+        Namespacedkey = None
         if MiniMessageUtils.isString(SoundStr):
             try:
                 if ':' in SoundStr:
                     Namespace, Key = SoundStr.split(':', 1)
-                    NamespacedKey = NamespacedKey(Namespace, Key)
+                    Namespacedkey = NamespacedKey(Namespace, Key)
                 else:
                     # 如果没有指定命名空间，则使用默认命名空间
-                    NamespacedKey = NamespacedKey.minecraft(SoundStr.lower())
-                registry_sound = Registry.SOUNDS.get(NamespacedKey)
+                    Namespacedkey = NamespacedKey.minecraft(SoundStr.lower())
+                registry_sound = Registry.SOUNDS.get(Namespacedkey)
                 if registry_sound:
                     Target.playSound(Target.getLocation(), registry_sound, Volume, Pitch)
                     return
@@ -1681,14 +1796,11 @@ class MiniMessageUtils:
 
 # 脚本启动检查
 if ps.script.isScriptRunning("JiuWu's_Kitchen.py"):
-    MiniMessageUtils.sendMessage(Bukkit.getServer().getConsoleSender(), Config.getString("Messages.Load"),
-                                 {"Version": "v1.1.4", "Prefix": Prefix})
-    MiniMessageUtils.sendMessage(Bukkit.getServer().getConsoleSender(),
+    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"),{"Version": "v1.1.6", "Prefix": Prefix})
+    MiniMessageUtils.sendMessage(Console,
                                  u"{Prefix} <red>Discord: <gray>https://discord.gg/jyhbPUkG",{"Prefix": Prefix})
-    MiniMessageUtils.sendMessage(Bukkit.getServer().getConsoleSender(),u"{Prefix} <red>QQ群: <gray>299852340",
-                                 {"Prefix": Prefix})
-    MiniMessageUtils.sendMessage(Bukkit.getServer().getConsoleSender(),
-        u"{Prefix} <red>Wiki: <gray>https://gitlab.com/jiuwu02/jiuwus_kitchen_wiki/-/wikis/home",
-        {"Prefix": Prefix})
+    MiniMessageUtils.sendMessage(Console,u"{Prefix} <red>QQ群: <gray>299852340",{"Prefix": Prefix})
+    MiniMessageUtils.sendMessage(Console,
+        u"{Prefix} <red>Wiki: <gray>https://gitlab.com/jiuwu02/jiuwus_kitchen_wiki/-/wikis/home",{"Prefix": Prefix})
     ServerPluginLoad()
     ReloadPlugin()
