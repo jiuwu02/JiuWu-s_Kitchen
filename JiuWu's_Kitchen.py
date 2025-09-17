@@ -27,18 +27,18 @@ from net.kyori.adventure.title import Title # type: ignore
 
 class ConfigManager:
     '''配置文件管理类'''
-    
+
     # 类变量，存储配置实例
     _config = None
     _choppingBoardRecipe = None
     _wokRecipe = None
     _data = None
     _prefix = None
-    
+
     @staticmethod
     def _setConfigValue(configFile, path, defaultValue, comments=None):
         '''为配置项设置默认值和注释
-        
+
         参数
             configFile: 配置文件对象
             path: 配置项路径
@@ -49,17 +49,17 @@ class ConfigManager:
             configFile.setIfNotExists(path, defaultValue)
             if comments is not None:
                 configFile.setComments(path, comments)
-    
+
     @staticmethod
     def _loadConfig():
         '''加载并初始化插件配置文件
-        
+
         返回
             配置对象
         '''
         configPath = "JiuWu's Kitchen/Config.yml"
         configFile = ps.config.loadConfig(configPath)
-        
+
         # 砧板设置
         ConfigManager._setConfigValue(configFile,"Setting.ChoppingBoard.Drop",True,[u"砧板处理完成后是否掉落成品"])
         ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.StealthInteraction", True, [
@@ -99,7 +99,7 @@ class ConfigManager:
             u"允许Z轴旋转角度为小数 (0.0, 360.0)",
             u"也允许为一个范围值随机数 (0.0-360.0)"])
         ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Scale", 0.5)
-        
+
         # 炒锅设置
         ConfigManager._setConfigValue(configFile, "Setting.Wok.Drop", True, [u"炒锅烹饪完成后是否掉落成品"])
         ConfigManager._setConfigValue(configFile, "Setting.Wok.StealthInteraction", True, [
@@ -167,7 +167,7 @@ class ConfigManager:
             u"允许Z轴旋转角度为小数 (0.0, 360.0)",
             u"也允许为一个范围值随机数 (0.0-360.0)"])
         ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Scale", 0.5)
-        
+
         # 消息设置
         messages = {
             "Messages.Prefix": u"<gray>[ <dark_gray>JiuWu's Kitchen<gray> ]",
@@ -195,14 +195,15 @@ class ConfigManager:
             "Messages.ActionBar.SuccessRecipe": u"<green>完美! 你成功烹饪了一道美味佳肴! ",
             "Messages.ActionBar.CannotCut": u"<red>大厨，这个食材不能在这里处理哦! ",
             "Messages.ActionBar.BurntFood": u"<red>哎呀! 火太大了，菜烧焦了! ",
+            "Messages.ActionBar.RawFood": u"<red>哎呀! 菜还没熟透呢! ",
             "Messages.ActionBar.StirFriedTooQuickly": u"<red>翻炒得太急了! 食材还没熟透呢! ",
             "Messages.ActionBar.WokStirItem": u"<green>正在翻炒 <gray>{Material}...",
             "Messages.PluginLoad.CraftEngine": u"{Prefix} <green>检测到 CraftEngine 插件",
             "Messages.PluginLoad.MMOItems": u"{Prefix} <green>检测到 MMOItems 插件"
         }
-        
+
         for key, value in messages.items(): ConfigManager._setConfigValue(configFile, key, value)
-        
+
         # 音效设置
         ConfigManager._setConfigValue(
             configFile, "Setting.Sound.ChoppingBoardAddItem", u"entity.item_frame.add_item", [u"砧板添加食材的音效"])
@@ -218,7 +219,7 @@ class ConfigManager:
             configFile, "Setting.Sound.WokScald", u"entity.player.hurt_on_fire", [u"炒锅翻炒时手被烫伤的音效"])
         ConfigManager._setConfigValue(
             configFile, "Setting.Sound.WokTakeOffItem", u"entity.item.pickup", [u"炒锅取出食材的音效"])
-        
+
         # 粒子设置
         ConfigManager._setConfigValue(
             configFile, "Setting.Particle.ChoppingBoardCutItem.Type", "CLOUD",[u"砧板切割食材的粒子"])
@@ -227,7 +228,7 @@ class ConfigManager:
         ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.OffsetY", 1.0)
         ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.OffsetZ", 0.5)
         ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.Speed", 0.05)
-        
+
         ConfigManager._setConfigValue(
             configFile, "Setting.Particle.WokStirItem.Type", "CAMPFIRE_COSY_SMOKE",[u"炒锅翻炒食材的粒子"])
         ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.Amount", 10)
@@ -235,75 +236,75 @@ class ConfigManager:
         ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.OffsetY", 1.0)
         ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.OffsetZ", 0.5)
         ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.Speed", 0.05)
-        
+
         configFile.save()
         return ps.config.loadConfig(configPath)
-    
+
     @staticmethod
     def _loadChoppingBoardRecipe():
         '''加载砧板配方配置文件
-        
+
         返回: 
             对象: 砧板配方文件
         '''
         choppingBoardRecipePath = "JiuWu's Kitchen/Recipe/ChoppingBoard.yml"
         return ps.config.loadConfig(choppingBoardRecipePath)
-    
+
     @staticmethod
     def _loadWokRecipe():
         '''加载炒锅配方配置文件
-        
+
         返回: 
             对象: 砧板配方文件
         '''
         wokRecipePath = "JiuWu's Kitchen/Recipe/Wok.yml"
         return ps.config.loadConfig(wokRecipePath)
-    
+
     @staticmethod
     def _loadData():
         '''加载数据文件
-        
+
         返回:
             对象: 数据文件
         '''
         dataPath = "JiuWu's Kitchen/Data.yml"
         return ps.config.loadConfig(dataPath)
-    
+
     @staticmethod
     def getConfig():
         '''获取主配置对象'''
         if ConfigManager._config is None:
             ConfigManager._config = ConfigManager._loadConfig()
         return ConfigManager._config
-    
+
     @staticmethod
     def getChoppingBoardRecipe():
         '''获取砧板配方配置'''
         if ConfigManager._choppingBoardRecipe is None:
             ConfigManager._choppingBoardRecipe = ConfigManager._loadChoppingBoardRecipe()
         return ConfigManager._choppingBoardRecipe
-    
+
     @staticmethod
     def getWokRecipe():
         '''获取炒锅配方配置'''
         if ConfigManager._wokRecipe is None:
             ConfigManager._wokRecipe = ConfigManager._loadWokRecipe()
         return ConfigManager._wokRecipe
-    
+
     @staticmethod
     def getData():
         '''获取数据文件'''
         if ConfigManager._data is None:
             ConfigManager._data = ConfigManager._loadData()
         return ConfigManager._data
-    
+
     @staticmethod
     def getPrefix():
         '''获取消息前缀'''
         if ConfigManager._prefix is None:
             ConfigManager._prefix = ConfigManager.getConfig().getString("Messages.Prefix")
         return ConfigManager._prefix
-    
+
     @staticmethod
     def reloadAll():
         '''重新加载所有配置文件'''
@@ -347,83 +348,10 @@ def InteractionVanillaBlock(E):
     参数
         E: PlayerInteractEvent事件对象
     '''
-    ClickBlock = E.getClickedBlock()
-    if ClickBlock is None: return
-    if E.getHand() != EquipmentSlot.HAND: return
-    ClickPlayer = E.getPlayer()
-    ClickBlockType = ClickBlock.getType().name()
-    FileKey = GetFileKey(ClickBlock)
-    # 判断点击的方块是否为砧板
-    if not Config.getBoolean("Setting.ChoppingBoard.Custom"):
-        if ClickBlockType == Config.getString("Setting.ChoppingBoard.Material"):
-            if E.getAction() != Action.LEFT_CLICK_BLOCK: return
-            if Config.getBoolean("Setting.ChoppingBoard.StealthInteraction"):
-                if not ClickPlayer.isSneaking(): return
-            else:
-                if ClickPlayer.isSneaking(): return
-            if not Config.getBoolean("Setting.ChoppingBoard.SpaceRestriction"):
-                if ClickBlock.getRelative(BlockFace.UP).getType() != Material.AIR: return
-            E.setCancelled(True)
-            HasExistingDisplay = Data.contains("ChoppingBoard." + FileKey)
-            InteractionChoppingBoard(ClickPlayer, ClickBlock, Config, FileKey, HasExistingDisplay)
-            return
-    # 判断点击的方块是否为炒锅
-    if not Config.getBoolean("Setting.Wok.Custom"):
-        if ClickBlockType == Config.getString("Setting.Wok.Material"):
-            BottomBlock = ClickBlock.getRelative(BlockFace.DOWN)
-            BottomBlockType = BottomBlock.getType().name()
-            HeatControl = Config.get("Setting.Wok.HeatControl").getKeys(False)
-            HeatLevel = None
-            if CraftEngineAvailable:
-                try:
-                    from net.momirealms.craftengine.bukkit.api import CraftEngineBlocks  # type: ignore
-                    if CraftEngineBlocks.isCustomBlock(BottomBlock):
-                        BottomBlockState = CraftEngineBlocks.getCustomBlockState(BottomBlock)
-                        CraftEngineKey = "craftengine " + str(BottomBlockState)
-                        if CraftEngineKey in HeatControl:
-                            HeatLevel = Config.getString("Setting.Wok.HeatControl." + CraftEngineKey)
-                except: pass
-            if HeatLevel is None and BottomBlockType in HeatControl:
-                HeatLevel = Config.getString("Setting.Wok.HeatControl." + BottomBlockType)
-            if HeatLevel is None: return
-            if E.getAction() == Action.RIGHT_CLICK_BLOCK:
-                if Config.getBoolean("Setting.Wok.StealthInteraction"):
-                    if not ClickPlayer.isSneaking(): return
-                else:
-                    if ClickPlayer.isSneaking(): return
-                MainHandItem = ClickPlayer.getInventory().getItemInMainHand()  
-                if not ToolUtils.isToolItem(MainHandItem, Config, "Wok",  "Spatula"): return
-                FileKey = GetFileKey(ClickBlock)
-                HasExistingDisplay = Data.get("Wok")
-                if HasExistingDisplay: HasExistingDisplay = HasExistingDisplay.contains(FileKey)
-                else: HasExistingDisplay = False
-                if HasExistingDisplay:
-                    E.setCancelled(True)
-                    OutputWokInfo(ClickPlayer, Config, FileKey, HeatLevel)
-                else:
-                    E.setCancelled(True)
-                    MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
-                return
-            if E.getAction() != Action.LEFT_CLICK_BLOCK: return
-            FileKey = GetFileKey(ClickBlock)
-            HasExistingDisplay = Data.get("Wok")
-            if HasExistingDisplay: HasExistingDisplay = HasExistingDisplay.contains(FileKey)
-            else: HasExistingDisplay = False
-            if Config.getBoolean("Setting.Wok.StealthInteraction"):
-                if not ClickPlayer.isSneaking():
-                    if not Config.getBoolean("Setting.Wok.NeedBowl"):
-                        GetWokOutput(Data, Config, FileKey, ClickPlayer, ClickBlock, HeatLevel)
-                        return
-                    return
-            else:
-                if ClickPlayer.isSneaking():
-                    if not Config.getBoolean("Setting.Wok.NeedBowl"):
-                        GetWokOutput(Data, Config, FileKey, ClickPlayer, ClickBlock, HeatLevel)
-                        return
-                    return
-            E.setCancelled(True)
-            InteractionWok(ClickPlayer, ClickBlock, Config, FileKey, HasExistingDisplay, HeatLevel)
-            return
+    # 处理砧板方块
+    if ChoppingBoardInteraction(E, "vanilla"): return
+    # 处理炒锅方块
+    if WokInteraction(E, 'vanilla'): return
 
 def InteractionCraftEngineBlock(E):
     '''处理CraftEngine方块的交互事件
@@ -431,88 +359,10 @@ def InteractionCraftEngineBlock(E):
     参数
         E: BlockInteractEvent事件对象
     '''
-    from net.momirealms.craftengine.core.entity.player import InteractionHand  # type: ignore
-    from net.momirealms.craftengine.bukkit.api import CraftEngineBlocks  # type: ignore
-    if E.hand() != InteractionHand.MAIN_HAND: return
-    ClickPlayer = E.player()
-    ClickBlock = E.bukkitBlock()
-    if ClickBlock is None: return
-    FileKey = GetFileKey(ClickBlock)
-    # 判断CraftEngine方块是否为砧板
-    if Config.getBoolean("Setting.ChoppingBoard.Custom"):
-        Identifier, ID = Config.getString("Setting.ChoppingBoard.Material").split(" ", 1)
-        if Identifier != "craftengine":
-            return
-        ClickBlockState = CraftEngineBlocks.getCustomBlockState(ClickBlock)
-        if str(ClickBlockState) == ID:
-            if E.action() != E.Action.LEFT_CLICK: return
-            if Config.getBoolean("Setting.ChoppingBoard.StealthInteraction"):
-                if not ClickPlayer.isSneaking(): return
-            else:
-                if ClickPlayer.isSneaking(): return
-            if not Config.getBoolean("Setting.ChoppingBoard.SpaceRestriction"):
-                if ClickBlock.getRelative(BlockFace.UP).getType() != Material.AIR: return
-            E.setCancelled(True)
-            HasExistingDisplay = Data.contains("ChoppingBoard." + FileKey)
-            InteractionChoppingBoard(ClickPlayer, ClickBlock, Config, FileKey, HasExistingDisplay)
-            return
-    # 判断CraftEngine方块是否为炒锅
-    if Config.getBoolean("Setting.Wok.Custom"):
-        Identifier, ID = Config.getString("Setting.Wok.Material").split(" ", 1)
-        if Identifier != "craftengine": return
-        ClickBlockState = CraftEngineBlocks.getCustomBlockState(ClickBlock)
-        if str(ClickBlockState) == ID:
-            BottomBlock = ClickBlock.getRelative(BlockFace.DOWN)
-            HeatControl = Config.get("Setting.Wok.HeatControl").getKeys(False)
-            HeatLevel = None
-            if CraftEngineBlocks.isCustomBlock(BottomBlock):
-                BottomBlockState = CraftEngineBlocks.getCustomBlockState(BottomBlock)
-                CraftEngineKey = "craftengine " + str(BottomBlockState)
-                if CraftEngineKey in HeatControl:
-                    HeatLevel = Config.getString("Setting.Wok.HeatControl." + CraftEngineKey)
-            if HeatLevel is None:
-                BottomBlockType = BottomBlock.getType().name()
-                if BottomBlockType in HeatControl:
-                    HeatLevel = Config.getString("Setting.Wok.HeatControl." + BottomBlockType)
-            if HeatLevel is None: return
-            if E.action() == E.Action.RIGHT_CLICK:
-                if Config.getBoolean("Setting.Wok.StealthInteraction"):
-                    if not ClickPlayer.isSneaking(): return
-                else:
-                    if ClickPlayer.isSneaking(): return
-                MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
-                if not ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula"): return
-                FileKey = GetFileKey(ClickBlock)
-                HasExistingDisplay = Data.get("Wok")
-                if HasExistingDisplay: HasExistingDisplay = HasExistingDisplay.contains(FileKey)
-                else: HasExistingDisplay = False
-                if HasExistingDisplay:
-                    E.setCancelled(True)
-                    OutputWokInfo(ClickPlayer, Config, FileKey, HeatLevel)
-                else:
-                    E.setCancelled(True)
-                    MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
-                return
-            if E.action() != E.Action.LEFT_CLICK: return
-            E.setCancelled(True)
-            FileKey = GetFileKey(ClickBlock)
-            HasExistingDisplay = Data.get("Wok")
-            if HasExistingDisplay: HasExistingDisplay = HasExistingDisplay.contains(FileKey)
-            else: HasExistingDisplay = False
-            if Config.getBoolean("Setting.Wok.StealthInteraction"):
-                if not ClickPlayer.isSneaking():
-                    if not Config.getBoolean("Setting.Wok.NeedBowl"):
-                        GetWokOutput(Data, Config, FileKey, ClickPlayer, ClickBlock, HeatLevel)
-                        return
-                    return
-            else:
-                if ClickPlayer.isSneaking():
-                    if not Config.getBoolean("Setting.Wok.NeedBowl"):
-                        GetWokOutput(Data, Config, FileKey, ClickPlayer, ClickBlock, HeatLevel)
-                        return
-                    return
-            InteractionWok(ClickPlayer, ClickBlock, Config, FileKey, HasExistingDisplay, HeatLevel)
-            return
+    # 处理砧板方块
+    if ChoppingBoardInteraction(E, "craftengine"): return
+    # 处理炒锅方块
+    if WokInteraction(E, 'craftengine'): return
 
 def BreakVanillaBlock(E):
     '''处理砧板方块被破坏的事件
@@ -520,52 +370,10 @@ def BreakVanillaBlock(E):
     参数
         E: BlockBreakEvent事件对象
     '''
-    Block = E.getBlock()
-    FileKey = GetFileKey(Block)
     # 处理砧板方块
-    ChoppingBoard = Config.getBoolean("Setting.ChoppingBoard.Custom")
-    if not ChoppingBoard:
-        try:
-            MaterialSetting = Config.getString("Setting.ChoppingBoard.Material")
-            if Block.getType() == Material.valueOf(MaterialSetting):
-                HasExistingDisplay = Data.contains("ChoppingBoard." + FileKey)
-                if HasExistingDisplay:
-                    DisplayLocation = CalculateDisplayLocation(Block, Config, "ChoppingBoard")
-                    ItemDisplayEntity = FindNearbyDisplay(DisplayLocation)
-                    if ItemDisplayEntity:
-                        DisplayItem = ItemDisplayEntity.getItemStack()
-                        if DisplayItem:
-                            ItemEntity = Block.getWorld().dropItem(ItemDisplayEntity.getLocation(), DisplayItem)
-                            ItemEntity.setPickupDelay(0)
-                        ItemDisplayEntity.remove()
-                    Data.set("ChoppingBoard." + FileKey, None)
-                    Data.save()
-                return
-        except: 
-            pass
+    if ChoppingBoardBreak(E, "vanilla"): return
     # 处理炒锅方块
-    Wok = Config.getBoolean("Setting.Wok.Custom")
-    if not Wok:
-        try:
-            MaterialSetting = Config.getString("Setting.Wok.Material")
-            if Block.getType() == Material.valueOf(MaterialSetting):
-                HasExistingDisplay = Data.contains("Wok." + FileKey)
-                if HasExistingDisplay:
-                    DisplayLocation = CalculateDisplayLocation(Block.getLocation(), Config, "Wok")
-                    NearbyDisplays = FindNearbyDisplay(DisplayLocation)
-                    if NearbyDisplays:
-                        for Display in NearbyDisplays:
-                            if Display and not Display.isDead():
-                                DisplayItem = Display.getItemStack()
-                                if DisplayItem:
-                                    ItemEntity = Block.getWorld().dropItem(Display.getLocation(), DisplayItem)
-                                    ItemEntity.setPickupDelay(0)
-                                Display.remove()
-                    Data.set("Wok." + FileKey, None)
-                    Data.save()
-                return
-        except:
-            pass
+    if WokBreak(E, "vanilla"): return
 
 def BreakCraftEngineBlock(E):
     '''处理CraftEngine方块被破坏的事件
@@ -573,231 +381,507 @@ def BreakCraftEngineBlock(E):
     参数
         E: CustomBlockBreakEvent事件对象
     '''
-    BreakBlock = E.bukkitBlock()
-    if BreakBlock is None:  return
-    FileKey = GetFileKey(BreakBlock)
     # 处理砧板方块
-    if Config.getBoolean("Setting.ChoppingBoard.Custom"):
-        MaterialSetting = Config.getString("Setting.ChoppingBoard.Material")
-        if " " in MaterialSetting:
-            Identifier, ID = MaterialSetting.split(" ", 1)
-            if Identifier == "craftengine":
-                try:
-                    from net.momirealms.craftengine.bukkit.api import CraftEngineBlocks  # type: ignore
-                    ClickBlockState = CraftEngineBlocks.getCustomBlockState(BreakBlock)
-                    if ClickBlockState is not None and str(ClickBlockState) == ID:
-                        HasExistingDisplay = Data.contains("ChoppingBoard." + FileKey)
-                        if HasExistingDisplay:
-                            DisplayLocation = CalculateDisplayLocation(BreakBlock, Config, "ChoppingBoard")
-                            ItemDisplayEntity = FindNearbyDisplay(DisplayLocation)
-                            if ItemDisplayEntity:
-                                DisplayItem = ItemDisplayEntity.getItemStack()
-                                if DisplayItem:
-                                    ItemEntity = BreakBlock \
-                                        .getWorld() \
-                                        .dropItem(ItemDisplayEntity.getLocation(), DisplayItem)
-                                    ItemEntity.setPickupDelay(0)
-                                ItemDisplayEntity.remove()
-                            Data.set("ChoppingBoard." + FileKey, None)
-                            Data.save()
-                        return
-                except: pass
+    if ChoppingBoardBreak(E, "craftengine"): return
     # 处理炒锅方块
-    if Config.getBoolean("Setting.Wok.Custom"):
-        MaterialSetting = Config.getString("Setting.Wok.Material")
-        if " " in MaterialSetting:
-            Identifier, ID = MaterialSetting.split(" ", 1)
-            if Identifier == "craftengine":
-                try:
-                    from net.momirealms.craftengine.bukkit.api import CraftEngineBlocks  # type: ignore
-                    ClickBlockState = CraftEngineBlocks.getCustomBlockState(BreakBlock)
-                    if ClickBlockState is not None and str(ClickBlockState) == ID:
-                        HasExistingDisplay = Data.contains("Wok." + FileKey)
-                        if HasExistingDisplay:
-                            DisplayLocation = CalculateDisplayLocation(BreakBlock.getLocation(), Config, "Wok")
-                            NearbyDisplays = FindNearbyDisplay(DisplayLocation)
-                            if NearbyDisplays:
-                                for Display in NearbyDisplays:
-                                    if Display and not Display.isDead():
-                                        DisplayItem = Display.getItemStack()
-                                        if DisplayItem:
-                                            ItemEntity = BreakBlock.getWorld().dropItem(Display.getLocation(),
-                                                                                        DisplayItem)
-                                            ItemEntity.setPickupDelay(0)
-                                        Display.remove()
-                            Data.set("Wok." + FileKey, None)
-                            Data.save()
-                        return
-                except: pass
+    if WokBreak(E, "craftengine"): return
 
-def InteractionChoppingBoard(ClickPlayer, Block, Config, FileKey, HasExistingDisplay):
-    '''交互砧板
-    
-    参数
-        ClickPlayer: 点击玩家
-        Block: 点击的方块
-        Config: 配置对象
-        FileKey: 数据文件键
-        HasExistingDisplay: 是否存在已存在的展示实体
-    '''
+class EventUtils:
+    '''事件工具类'''
+
+    @staticmethod
+    def getPlayer(Event, EventType):
+        '''获取事件中的玩家对象
+
+        参数:
+            Event: 事件对象
+            EventType: 事件类型 (vanilla或craftengine)
+
+        返回:
+            对象: 玩家对象
+        '''
+        if EventType == "vanilla":
+            return Event.getPlayer()
+        elif EventType == "craftengine":
+            return Event.player()
+        return None
+
+    @staticmethod
+    def getInteractionBlock(Event, EventType):
+        '''获取事件中的方块对象
+
+        参数:
+            Event: 事件对象
+            EventType: 事件类型 (vanilla或craftengine)
+
+        返回:
+            对象: 方块对象
+        '''
+        if EventType == 'vanilla':
+            return Event.getClickedBlock()
+        elif EventType == 'craftengine':
+            return Event.bukkitBlock()
+        return None
+
+    @staticmethod
+    def getBreakBlock(Event, EventType):
+        '''获取事件中的方块对象
+
+        参数:
+            Event: 事件对象
+            EventType: 事件类型 (vanilla或craftengine)
+
+        返回:
+            对象: 方块对象
+        '''
+        if EventType == 'vanilla':
+            return Event.getBlock()
+        elif EventType == 'craftengine':
+            return Event.bukkitBlock()
+        return None
+
+    @staticmethod
+    def getAction(Event, EventType):
+        '''获取事件中的动作类型
+
+        参数:
+            Event: 事件对象
+            EventType: 事件类型 (vanilla或craftengine)
+
+        返回:
+            对象: 动作类型
+        '''
+        if EventType == 'vanilla':
+            return Event.getAction()
+        elif EventType == 'craftengine':
+            return Event.action()
+        return None
+
+    @staticmethod
+    def getHand(Event, EventType):
+        '''获取事件中的手
+
+        参数:
+            Event: 事件对象
+            EventType: 事件类型 (vanilla或craftengine)
+
+        返回:
+            对象: 手
+        '''
+        if EventType == 'vanilla':
+            return Event.getHand()
+        elif EventType == 'craftengine':
+            return Event.hand()
+        return None
+
+    @staticmethod
+    def isMainHand(Event, EventType):
+        '''判断事件是否为主手
+
+        参数:
+            Event: 事件对象
+            EventType: 事件类型 (vanilla或craftengine)
+
+        返回:
+            bool: 是否为主手
+        '''
+        if EventType == 'vanilla':
+            return Event.getHand() == EquipmentSlot.HAND
+        elif EventType == 'craftengine':
+            from net.momirealms.craftengine.core.entity.player import InteractionHand  # type: ignore
+            return Event.hand() == InteractionHand.MAIN_HAND
+
+    def isOffHand(Event, EventType):
+        '''判断事件是否为副手
+
+        参数:
+            Event: 事件对象
+            EventType: 事件类型 (vanilla或craftengine)
+
+        返回:
+            bool: 是否为副手
+        '''
+        if EventType == 'vanilla':
+            return Event.getHand() == EquipmentSlot.OFF_HAND
+        elif EventType == 'craftengine':
+            from net.momirealms.craftengine.core.entity.player import InteractionHand  # type: ignore
+            return Event.hand() == InteractionHand.OFF_HAND
+
+    @staticmethod
+    def isLeftClick(Event, EventType):
+        '''判断事件是否为左键点击
+
+        参数:
+            Event: 事件对象
+            EventType: 事件类型 (vanilla或craftengine)
+
+        返回:
+            bool: 是否为左键点击
+        '''
+        if EventType == 'vanilla':
+            return Event.getAction() == Action.LEFT_CLICK_BLOCK
+        elif EventType == 'craftengine':
+            return Event.action() == Event.Action.LEFT_CLICK
+        return False
+
+    @staticmethod
+    def isRightClick(Event, EventType):
+        '''判断事件是否为右键点击
+
+        参数:
+            Event: 事件对象
+            EventType: 事件类型 (vanilla或craftengine)
+
+        返回:
+            bool: 是否为右键点击
+        '''
+        if EventType == 'vanilla':
+            return Event.getAction() == Action.RIGHT_CLICK_BLOCK
+        elif EventType == 'craftengine':
+            return Event.action() == Event.Action.RIGHT_CLICK
+        return False
+
+    @staticmethod
+    def isSneaking(EventPlayer, ConfigType):
+        '''判断事件是否为潜行状态
+
+        参数:
+            EventPlayer: 玩家对象
+            ConfigType: 配置类型 (vanilla或craftengine)
+
+        返回:
+            bool: 是否为潜行状态
+        '''
+        SneakingStatus = Config.getBoolean("Setting." + ConfigType + ".StealthInteraction")
+        if SneakingStatus and not EventPlayer.isSneaking():
+            return False
+        elif not SneakingStatus and EventPlayer.isSneaking():
+            return False
+        else:
+            return True
+
+    @staticmethod
+    def isTargetBlock(Block, Target):
+        '''判断是否为目标方块
+
+        参数:
+            Block: 方块对象
+            Target: 目标类型 (ChoppingBoard 或 Wok)
+            Config: 配置对象
+
+        返回:
+            bool: 是否为目标方块
+        '''
+        if Config.getBoolean("Setting." + Target + ".Custom"):
+            MaterialSetting = Config.getString("Setting." + Target + ".Material")
+            if " " in MaterialSetting:
+                Identifier, ID = MaterialSetting.split(" ", 1)
+                if Identifier == "craftengine":
+                    try:
+                        from net.momirealms.craftengine.bukkit.api import CraftEngineBlocks  # type: ignore
+                        ClickBlockState = CraftEngineBlocks.getCustomBlockState(Block)
+                        if ClickBlockState is not None and str(ClickBlockState) == ID:
+                            return True
+                    except: pass
+        else:
+            if Block.getType() == Material.valueOf(Config.getString("Setting." + Target + ".Material")):
+                return True
+        return False
+
+    @staticmethod
+    def setCancelled(Event, EventType, Cancelled):
+        '''设置事件是否被取消
+
+        参数:
+            Event: 事件对象
+            EventType: 事件类型 (vanilla或craftengine)
+            Cancelled: 是否取消 (True或False)
+
+        返回:
+            bool: 是否取消
+        '''
+        if EventType == 'vanilla':
+            Event.setCancelled(Cancelled)
+        elif EventType == 'craftengine':
+            Event.setCancelled(Cancelled)
+
+def ChoppingBoardBreak(Event, EventType):
+    '''砧板破坏事件处理'''
+    BreakBlock = EventUtils.getBreakBlock(Event, EventType)
+    if not EventUtils.isTargetBlock(BreakBlock, "ChoppingBoard"):
+        return False
+    FileKey = GetFileKey(BreakBlock)
+    hasExistingDisplay = Data.contains("ChoppingBoard." + FileKey)
+    if not hasExistingDisplay:
+        return False
+    DisplayLocation = CalculateDisplayLocation(BreakBlock, "ChoppingBoard")
+    ItemDisplayEntity = FindNearbyDisplay(DisplayLocation)[0]
+    if not ItemDisplayEntity:
+        return False
+    DisplayItem = ItemDisplayEntity.getItemStack()
+    if not DisplayItem:
+        return False
+    ItemEntity = BreakBlock.getWorld().dropItem(DisplayLocation, DisplayItem)
+    ItemEntity.setPickupDelay(0)
+    Data.set("ChoppingBoard." + FileKey, None)
+    Data.save()
+    ItemDisplayEntity.remove()
+    return True
+
+def WokBreak(Event, EventType):
+    '''炒锅破坏事件处理'''
+    BreakBlock = EventUtils.getBreakBlock(Event, EventType)
+    if not EventUtils.isTargetBlock(BreakBlock, "Wok"): return False
+    FileKey = GetFileKey(BreakBlock)
+    hasExistingDisplay = Data.contains("Wok." + FileKey)
+    if not hasExistingDisplay: return False
+    DisplayLocation = CalculateDisplayLocation(BreakBlock, "Wok")
+    ItemDisplayEntity = FindNearbyDisplay(DisplayLocation)
+    if not ItemDisplayEntity: return False
+    for Display in ItemDisplayEntity:
+        if Display and not Display.isDead():
+            DisplayItem = Display.getItemStack()
+            if not DisplayItem: return False
+            ItemEntity = BreakBlock.getWorld().dropItem(Display.getLocation(), DisplayItem)
+            ItemEntity.setPickupDelay(0)
+            Display.remove()
+    Data.set("Wok." + FileKey, None)
+    Data.save()
+    return True
+
+def ChoppingBoardInteraction(Event, EventType):
+    '''砧板交互事件处理'''
+    ClickPlayer = EventUtils.getPlayer(Event, EventType)
+    ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
+    if not ClickBlock:
+        return False
+    if not EventUtils.isMainHand(Event, EventType):
+        return False
+    if not EventUtils.isLeftClick(Event, EventType): 
+        return False
+    if not EventUtils.isTargetBlock(ClickBlock, "ChoppingBoard"):
+        return False
+    if not EventUtils.isSneaking(ClickPlayer, "ChoppingBoard"):
+        return False
+    if Config.getBoolean("Setting.ChoppingBoard.SpaceRestriction"):
+        if ClickBlock.getRelative(BlockFace.UP).getType() != Material.AIR:
+            return False
+    FileKey = GetFileKey(ClickBlock)
+    hasExistingDisplay = Data.contains("ChoppingBoard." + FileKey)
     MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
     if MainHandItem and MainHandItem.getType() != Material.AIR:
-        if HasExistingDisplay:
+        if hasExistingDisplay:
             if ToolUtils.isToolItem(MainHandItem, Config, "ChoppingBoard", "KitchenKnife"):
-                BlockLoc = Block.getLocation()
-                HandleCutting(ClickPlayer,BlockLoc.getWorld(),BlockLoc.getX(),BlockLoc.getY(),BlockLoc.getZ(),Config)
-                return
+                DisplayLocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard")
+                ItemDisplayEntities = FindNearbyDisplay(DisplayLocation)
+                if not ItemDisplayEntities: 
+                    return False
+                ItemDisplayEntity = ItemDisplayEntities[0]
+                DisplayItem = ItemDisplayEntity.getItemStack()
+                if not DisplayItem: 
+                    return False
+                ItemMaterial = ToolUtils.getItemIdentifier(DisplayItem)
+                RequiredCuts = ChoppingBoardRecipe.getInt(ItemMaterial + ".Count")
+                ResultMaterial = ChoppingBoardRecipe.getString(ItemMaterial + ".Output")
+                if not RequiredCuts or RequiredCuts == 0:
+                    EventUtils.setCancelled(Event, EventType, True)
+                    MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.CannotCut"))
+                    return False
+                CurrentCuts = Data.getInt("ChoppingBoard." + FileKey)
+                CurrentCuts += 1
+                Data.set("ChoppingBoard." + FileKey, CurrentCuts)
+                Data.save()
+                BlockLocation = ClickBlock.getLocation()
+                ParticleLocation = Location(
+                    BlockLocation.getWorld(),
+                    BlockLocation.getX() + 0.5,
+                    BlockLocation.getY() + 1.1,
+                    BlockLocation.getZ() + 0.5
+                )
+                ParticleType = Config.getString("Setting.Particle.ChoppingBoardCutItem.Type", "CLOUD")
+                ParticleAmount = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Amount")
+                ParticleOffsetX = Config.getDouble("Setting.Particle.ChoppingBoardCutItem.OffsetX")
+                ParticleOffsetY = Config.getDouble("Setting.Particle.ChoppingBoardItem.OffsetY")
+                ParticleOffsetZ = Config.getDouble("Setting.Particle.ChoppingBoardCutItem.OffsetZ")
+                ParticleSpeed = Config.getDouble("Setting.Particle.ChoppingBoardCutItem.Speed")
+                PlayParticle(
+                    ParticleLocation,
+                    ParticleType,
+                    ParticleAmount,
+                    ParticleOffsetX,
+                    ParticleOffsetY,
+                    ParticleOffsetZ,
+                    ParticleSpeed
+                )
+                if (Config.getBoolean("Setting.ChoppingBoard.Damage.Enable") and
+                    random.randint(1, 100) <= Config.getInt("Setting.ChoppingBoard.Damage.Chance")):
+                    DamageValue = Config.getInt("Setting.ChoppingBoard.Damage.Value")
+                    ClickPlayer.damage(DamageValue)
+                    MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.ChoppingBoardCutHand"))
+                    MiniMessageUtils.sendTitle(ClickPlayer,Config.getString("Messages.Title.CutHand.MainTitle"),
+                        Config.getString("Messages.Title.CutHand.SubTitle"),{"Damage": str(DamageValue)})
+                MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.CutAmount"),
+                    {"CurrentCount": str(CurrentCuts), "NeedCount": str(RequiredCuts)})
+                MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.ChoppingBoardCutItem"))
+                if CurrentCuts >= RequiredCuts:
+                    if " " in ResultMaterial: 
+                        GiveItem = ResultMaterial
+                    else: 
+                        GiveItem = ItemMaterial
+                    GiveAmount = ChoppingBoardRecipe.getInt(ItemMaterial + ".OutputAmount")
+                    ResultItemStack = ToolUtils.createItemStack(GiveItem, GiveAmount)
+                    if not ResultItemStack:
+                        MiniMessageUtils.sendMessage(Console, Config.getString("Messages.InvalidMaterial"),
+                            {"Prefix": Prefix, "Material": ResultMaterial})
+                        return False
+                    ItemDisplayEntity.remove()
+                    DropLocation = Location(BlockLocation.getWorld(), BlockLocation.getX() + 0.5,
+                        BlockLocation.getY() + 1.0, BlockLocation.getZ() + 0.5)
+                    if Config.getBoolean("Setting.ChoppingBoard.Drop"):
+                        ItemEntity = BlockLocation.getWorld().dropItem(DropLocation, ResultItemStack)
+                        ItemEntity.setPickupDelay(20)
+                    else: 
+                        GiveItemToPlayer(ClickPlayer, ResultItemStack)
+                    Data.set("ChoppingBoard." + FileKey, None)
+                    Data.save()
+                    EventUtils.setCancelled(Event, EventType, True)
+                    return True
+                EventUtils.setCancelled(Event, EventType, True)
+                return True
             else:
-                MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.TakeOffItem"))
-                return
+                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.TakeOffItem"))
+                EventUtils.setCancelled(Event, EventType, True)
+                return False
         else:
             DisplayItem = MainHandItem.clone()
             DisplayItem.setAmount(1)
-            MainHandItem.setAmount(MainHandItem.getAmount() - 1)
-            DisplayLocation = CalculateDisplayLocation(Block, Config, "ChoppingBoard")
-            ItemDisplayEntity = CreateItemDisplay(DisplayLocation, DisplayItem, Config, "ChoppingBoard")
+            if MainHandItem.getAmount() > 1:
+                MainHandItem.setAmount(MainHandItem.getAmount() - 1)
+                ClickPlayer.getInventory().setItemInMainHand(MainHandItem)
+            else: 
+                ClickPlayer.getInventory().setItemInMainHand(None)
+            DisplayLocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard")
+            CreateItemDisplay(DisplayLocation, DisplayItem, "ChoppingBoard")
             MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.ChoppingBoardAddItem"))
             if not Data.contains("ChoppingBoard." + FileKey):
                 Data.set("ChoppingBoard." + FileKey, 0)
                 Data.save()
-                return
+            EventUtils.setCancelled(Event, EventType, True)
+            return True
     elif not MainHandItem or MainHandItem.getType() == Material.AIR:
-        if HasExistingDisplay:
-            DisplayLocation = CalculateDisplayLocation(Block, Config, "ChoppingBoard")
-            ItemDisplayEntity = FindNearbyDisplay(DisplayLocation)[0]
-            if ItemDisplayEntity:
-                DisplayItem = ItemDisplayEntity.getItemStack()
-                if DisplayItem: ClickPlayer.getInventory().setItemInMainHand(DisplayItem.clone())
-                ItemDisplayEntity.remove()
-                Data.set("ChoppingBoard." + FileKey, None)
-                Data.save()
-                return
-
-def HandleCutting(Player, World, X, Y, Z, Config):
-    '''处理砧板上的切割操作
-
-    参数
-        Player: 执行切割的玩家
-        World: 砧板所在的世界
-        X: 砧板的X坐标
-        Y: 砧板的Y坐标
-        Z: 砧板的Z坐标
-        Config: 配置对象
-    '''
-    BaseLocation = Location(World, X, Y, Z)
-    DisplayLocation = CalculateDisplayLocation(BaseLocation, Config, "ChoppingBoard")
-    ItemDisplayEntity = FindNearbyDisplay(DisplayLocation)[0]
-    if not ItemDisplayEntity: return
-    DisplayItem = ItemDisplayEntity.getItemStack()
-    if not DisplayItem: return
-    RecipeConfig = ChoppingBoardRecipe
-    ItemMaterial = ToolUtils.getItemIdentifier(DisplayItem)
-    RequiredCuts = RecipeConfig.getInt(ItemMaterial + ".Count")
-    ResultMaterial = RecipeConfig.getString(ItemMaterial + ".Output")
-    if not RequiredCuts or RequiredCuts == 0:
-        MiniMessageUtils.sendActionBar(Player, Config.getString("Messages.ActionBar.CannotCut"))
-        return
-    CoordKey = "{},{},{},{}".format(int(X), int(Y), int(Z), World.getName())
-    FileKey = "ChoppingBoard.{}".format(CoordKey)
-    CurrentCuts = Data.getInt(FileKey, 0)
-    CurrentCuts += 1
-    Data.set(FileKey, CurrentCuts)
-    Data.save()
-    particleType = Config.getString("Setting.Particle.ChoppingBoardCutItem.Type", "CLOUD")
-    particleAmount = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Amount")
-    particleoffsetX = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Xoffset")
-    particleoffsetY = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Yoffset")
-    particleoffsetZ = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Zoffset")
-    particleSpeed = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Speed")
-    particleLocation = Location(World, X + 0.5, Y + 1.1, Z + 0.5)
-    PlayParticle(
-        particleLocation,
-        particleType,
-        particleAmount,
-        particleoffsetX,
-        particleoffsetY,
-        particleoffsetZ,
-        particleSpeed)
-    if (Config.getBoolean("Setting.ChoppingBoard.Damage.Enable")
-        and
-        random.randint(1, 100) <= Config.getInt("Setting.ChoppingBoard.Damage.Chance")):
-        DamageValue = Config.getInt("Setting.ChoppingBoard.Damage.Value")
-        Player.damage(DamageValue)
-        MiniMessageUtils.playSound(Player, Config.get("Setting.Sound.ChoppingBoardCutHand"))
-        MiniMessageUtils.sendTitle(Player,Config.getString("Messages.Title.CutHand.MainTitle"),
-                                   Config.getString("Messages.Title.CutHand.SubTitle"),
-                                   {"Damage": str(DamageValue)})
-    MiniMessageUtils.sendActionBar(Player,Config.getString("Messages.ActionBar.CutAmount"),
-                                   {"CurrentCount": str(CurrentCuts), "NeedCount": str(RequiredCuts)})
-    MiniMessageUtils.playSound(Player, Config.get("Setting.Sound.ChoppingBoardCutItem"))
-    if CurrentCuts >= RequiredCuts:
-        if " " in ResultMaterial: GiveItem = ResultMaterial
-        else: GiveItem = RequiredCuts
-        GiveAmount = RecipeConfig.getInt(ItemMaterial + ".OutputAmount")
-        ResultItemStack = ToolUtils.createItemStack(GiveItem, GiveAmount)
-        if not ResultItemStack:
-            MiniMessageUtils.sendMessage(Console,Config.getString("Messages.InvalidMaterial"),
-                                         {"Prefix": Config.getString("Messages.Prefix"), "Material": ResultMaterial})
-            return
-        if ResultItemStack is not None:
+        if hasExistingDisplay:
+            DisplayLocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard")
+            ItemDisplayEntities = FindNearbyDisplay(DisplayLocation)
+            if not ItemDisplayEntities: 
+                return False
+            ItemDisplayEntity = ItemDisplayEntities[0]
+            DisplayItem = ItemDisplayEntity.getItemStack()
+            if DisplayItem: 
+                ClickPlayer.getInventory().setItemInMainHand(DisplayItem.clone())
             ItemDisplayEntity.remove()
-            DropLocation = Location(World, X + 0.5, Y + 1.0, Z + 0.5)
-            if Config.getBoolean("Setting.ChoppingBoard.Drop"):
-                ItemEntity = World.dropItem(DropLocation, ResultItemStack)
-                ItemEntity.setPickupDelay(20)
-            else: GiveItemToPlayer(Player, ResultItemStack)
-            Data.set(FileKey, None)
+            Data.set("ChoppingBoard." + FileKey, None)
             Data.save()
-        else:
-            MiniMessageUtils.sendMessage(Console,Config.getString("Messages.InvalidMaterial"),
-                                         {"Prefix": Config.getString("Messages.Prefix"), "Material": ResultMaterial})
-            return
+            EventUtils.setCancelled(Event, EventType, True)
+            return True
+    return False
 
-def InteractionWok(ClickPlayer, ClickBlock, Config, FileKey, HasExistingDisplay, HeatLevel):
-    '''处理炒锅的交互事件
-    
-    参数
-        ClickPlayer: 玩家对象
-        ClickBlock: 点击的方块对象
-        Config: 配置文件对象
-        FileKey: 炒锅的坐标和世界名
-        HasExistingDisplay: 炒锅是否已经有显示物
-        HeatLevel: 炒锅的温度等级
+def WokInteraction(Event, EventType):
     '''
-    MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
-    if MainHandItem and MainHandItem.getType() != Material.AIR:
-        if ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula"):
+    处理炒锅的交互事件
+
+    参数:
+        Event: 事件对象
+        EventType: 事件类型 ('vanilla' 或 'craftengine')
+    '''
+    ClickPlayer = EventUtils.getPlayer(Event, EventType)
+    ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
+    if not ClickBlock:
+        return False
+    if not EventUtils.isMainHand(Event, EventType):
+        return False
+    if not EventUtils.isTargetBlock(ClickBlock, "Wok"):
+        return False
+    FileKey = GetFileKey(ClickBlock)
+    HeatLevel = 0
+    BottomBlock = ClickBlock.getRelative(BlockFace.DOWN)
+    BottomBlockType = BottomBlock.getType().name()
+    HeatControl = Config.get("Setting.Wok.HeatControl").getKeys(False)
+    if CraftEngineAvailable:
+        try:
+            from net.momirealms.craftengine.bukkit.api import CraftEngineBlocks  # type: ignore
+            if CraftEngineBlocks.isCustomBlock(BottomBlock):
+                BottomBlockState = CraftEngineBlocks.getCustomBlockState(BottomBlock)
+                CraftEngineKey = "craftengine " + str(BottomBlockState)
+                if CraftEngineKey in HeatControl: 
+                    HeatLevel = Config.getInt("Setting.Wok.HeatControl." + CraftEngineKey)
+        except: 
+            pass
+    if BottomBlockType in HeatControl:
+        HeatLevel = Config.getInt("Setting.Wok.HeatControl." + BottomBlockType)
+    if not EventUtils.isSneaking(ClickPlayer, "Wok"):
+        return False
+    if EventUtils.isRightClick(Event, EventType):
+        MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
+        if not ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula"): 
+            return False
+        hasExistingDisplay = Data.get("Wok")
+        if hasExistingDisplay: 
+            hasExistingDisplay = hasExistingDisplay.contains(FileKey)
+        else: 
+            hasExistingDisplay = False
+        if hasExistingDisplay:
+            ItemList = Data.getStringList("Wok." + FileKey + ".Items")
+            TotalCount = Data.getInt("Wok." + FileKey + ".Count", 0)
+            MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokTop"))
+            for Item in ItemList:
+                Parts = Item.split(" ")
+                PluginName, ItemName, Amount, Count = Parts
+                ItemStack = ToolUtils.createItemStack(Item)
+                MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokContent"),
+                    {"ItemName": ToolUtils.getItemDisplayName(ItemStack), "ItemAmount": Amount,  "Count": Count})
+            MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokDown"), {"Count": TotalCount})
+            MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokHeatControl"), {"Heat": HeatLevel})
+            EventUtils.setCancelled(Event, EventType, True)
+            return True
+        else:
+            MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
+            EventUtils.setCancelled(Event, EventType, True)
+            return True
+    elif EventUtils.isLeftClick(Event, EventType):
+        hasExistingDisplay = Data.get("Wok")
+        if hasExistingDisplay: 
+            hasExistingDisplay = hasExistingDisplay.contains(FileKey)
+        else:  
+            hasExistingDisplay = False
+        MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
+        if MainHandItem and ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula"):
             ItemList = Data.getStringList("Wok." + FileKey + ".Items")
             if not ItemList:
-                MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.WokNoItem"))
-                return
+                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
+                EventUtils.setCancelled(Event, EventType, True)
+                return True
             LastStirTime = Data.getLong("Wok." + FileKey + ".LastStirTime", 0)
             StirCount = Data.getInt("Wok." + FileKey + ".Count", 0)
             CurrentTime = System.currentTimeMillis()
-            if StirCount != 0:
-                if CurrentTime - LastStirTime > Config.getInt("Setting.Wok.TimeOut") * 1000:
-                    MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.BurntFood"))
-                    return
+            if StirCount != 0 and CurrentTime - LastStirTime > Config.getInt("Setting.Wok.TimeOut") * 1000:
+                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.BurntFood"))
+                EventUtils.setCancelled(Event, EventType, True)
+                return True
             StirFriedTime = Data.getLong("Wok." + FileKey + ".StirFriedTime", 0)
-            if StirFriedTime != 0:
-                if CurrentTime - StirFriedTime < Config.getInt("Setting.Wok.Dalay") * 1000:
-                    MiniMessageUtils.sendActionBar(ClickPlayer,
-                                                   Config.getString("Messages.ActionBar.StirFriedTooQuickly"))
-                    return
+            if StirFriedTime != 0 and CurrentTime - StirFriedTime < Config.getInt("Setting.Wok.Dalay") * 1000:
+                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.StirFriedTooQuickly"))
+                EventUtils.setCancelled(Event, EventType, True)
+                return True
             particleType = Config.getString("Setting.Particle.WokStirItem.Type", "CAMPFIRE_COSY_SMOKE")
             particleAmount = Config.getInt("Setting.Particle.WokStirItem.Amount")
-            particleoffsetX = Config.getInt("Setting.Particle.WokStirItem.Xoffset")
-            particleoffsetY = Config.getInt("Setting.Particle.WokStirItem.Yoffset")
-            particleoffsetZ = Config.getInt("Setting.Particle.WokStirItem.Zoffset")
-            particleSpeed = Config.getInt("Setting.Particle.WokStirItem.Speed")
+            particleoffsetX = Config.getDouble("Setting.Particle.WokStirItem.OffsetX")
+            particleoffsetY = Config.getDouble("Setting.Particle.WokStirItem.OffsetY")
+            particleoffsetZ = Config.getDouble("Setting.Particle.WokStirItem.OffsetZ")
+            particleSpeed = Config.getDouble("Setting.Particle.WokStirItem.Speed")
             particleLocation = ClickBlock.getLocation().add(0.5, 1.1, 0.5)
             PlayParticle(
-                particleLocation,
-                particleType,
-                particleAmount,
-                particleoffsetX,
-                particleoffsetY,
-                particleoffsetZ,
+                particleLocation, particleType, particleAmount,
+                particleoffsetX, particleoffsetY, particleoffsetZ,
                 particleSpeed)
             Data.set("Wok." + FileKey + ".StirFriedTime", System.currentTimeMillis())
             Data.set("Wok." + FileKey + ".LastStirTime", System.currentTimeMillis())
@@ -814,202 +898,183 @@ def InteractionWok(ClickPlayer, ClickBlock, Config, FileKey, HasExistingDisplay,
                 UpdatedItemList.append(UpdatedEntry)
             Data.set("Wok." + FileKey + ".Items", UpdatedItemList)
             Data.save()
-            MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.StirCount"),
-                                           {"Count": StirCount})
+            MiniMessageUtils.sendActionBar(
+                ClickPlayer,Config.getString("Messages.ActionBar.StirCount"),{"Count": StirCount})
             MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.WokStirItem"))
-            return
-        BowlCustom = Config.getBoolean("Setting.Wok.NeedBowl")
-        if BowlCustom and MainHandItem.getType() == Material.BOWL:
-            MainHandItem.setAmount(MainHandItem.getAmount() - 1)
-            GetWokOutput(Data, Config, FileKey, ClickPlayer, ClickBlock, HeatLevel)
-            return
-        if HasExistingDisplay:
+            EventUtils.setCancelled(Event, EventType, True)
+            return True
+        NeedBowl = Config.getBoolean("Setting.Wok.NeedBowl")
+        if NeedBowl and MainHandItem and MainHandItem.getType() == Material.BOWL:
+            GetWokOutput(Data, FileKey, ClickPlayer, ClickBlock, HeatLevel)
+            EventUtils.setCancelled(Event, EventType, True)
+            return True
+        if MainHandItem and MainHandItem.getType() != Material.AIR:
             CurrentItemIdentifier = ToolUtils.getItemIdentifier(MainHandItem)
-            ItemList = Data.getStringList("Wok." + FileKey + ".Items")
-            NeedAddItem = False
-            DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), Config, "Wok")
-            NearbyDisplays = FindNearbyDisplay(DisplayLocation)
-            for Index, ItemEntry in enumerate(ItemList):
-                Parts = ItemEntry.split(" ")
-                ItemTypeID = Parts[0] + " " + Parts[1]
-                if ItemTypeID == CurrentItemIdentifier:
-                    CurrentAmount = int(Parts[2]) + 1
-                    StirCount = int(Parts[3])
-                    ItemList[Index] = ItemTypeID + " " + str(CurrentAmount) + " " + str(StirCount)
-                    NeedAddItem = True
-                    for Display in NearbyDisplays:
-                        if Display and not Display.isDead():
-                            DisplayItem = Display.getItemStack()
-                            if DisplayItem and ToolUtils.getItemIdentifier(DisplayItem) == CurrentItemIdentifier:
-                                DisplayItem.setAmount(CurrentAmount)
-                                Display.setItemStack(DisplayItem)
-                                break
-                    break
-            if not NeedAddItem:
-                ItemListLength = len(ItemList)
-                ExtraOffset = 0.0001 * ItemListLength
-                ItemList.append(CurrentItemIdentifier + " 1 0")
+            if hasExistingDisplay:
+                ItemList = Data.getStringList("Wok." + FileKey + ".Items")
+                NeedAddItem = False
+                DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), "Wok")
+                NearbyDisplays = FindNearbyDisplay(DisplayLocation)
+                for Index, ItemEntry in enumerate(ItemList):
+                    Parts = ItemEntry.split(" ")
+                    ItemTypeID = Parts[0] + " " + Parts[1]
+                    if ItemTypeID == CurrentItemIdentifier:
+                        CurrentAmount = int(Parts[2]) + 1
+                        StirCount = int(Parts[3])
+                        ItemList[Index] = ItemTypeID + " " + str(CurrentAmount) + " " + str(StirCount)
+                        NeedAddItem = True
+                        for Display in NearbyDisplays:
+                            if Display and not Display.isDead():
+                                DisplayItem = Display.getItemStack()
+                                if DisplayItem and ToolUtils.getItemIdentifier(DisplayItem) == CurrentItemIdentifier:
+                                    DisplayItem.setAmount(CurrentAmount)
+                                    Display.setItemStack(DisplayItem)
+                                    break
+                        break
+                if not NeedAddItem:
+                    ItemListLength = len(ItemList)
+                    ExtraOffset = 0.0001 * ItemListLength
+                    ItemList.append(CurrentItemIdentifier + " 1 0")
+                    DisplayItem = MainHandItem.clone()
+                    DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), "Wok", ExtraOffset)
+                    CreateItemDisplay(DisplayLocation, DisplayItem, "Wok")
+                Data.set("Wok." + FileKey + ".Items", list(ItemList))
+                Data.save()
+            else:
+                if not BottomBlockType in HeatControl: 
+                    return False
+                SaveValue = CurrentItemIdentifier + " 1 0"
+                Data.set("Wok." + FileKey + ".Items", [SaveValue])
+                Data.set("Wok." + FileKey + ".Count", 0)
+                Data.save()
                 DisplayItem = MainHandItem.clone()
-                DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), Config, "Wok", ExtraOffset)
-                CreateItemDisplay(DisplayLocation, DisplayItem, Config, "Wok")
-            Data.set("Wok." + FileKey + ".Items", list(ItemList))
-            Data.save()
+                DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), "Wok")
+                CreateItemDisplay(DisplayLocation, DisplayItem, "Wok")
             MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.WokAddItem"),
-                                           {"Material": ToolUtils.getItemDisplayName(MainHandItem)})
+                {"Material": ToolUtils.getItemDisplayName(MainHandItem)})
             RemoveItemToPlayer(ClickPlayer, MainHandItem)
             MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.WokAddItem"))
-            return
+            EventUtils.setCancelled(Event, EventType, True)
+            return True
         else:
-            SaveValue = ToolUtils.getItemIdentifier(MainHandItem) + " 1 0"
-            Data.set("Wok." + FileKey + ".Items", [SaveValue])
-            Data.set("Wok." + FileKey + ".Count", 0)
-            Data.save()
-            DisplayItem = MainHandItem.clone()
-            DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), Config, "Wok")
-            CreateItemDisplay(DisplayLocation, DisplayItem, Config, "Wok")
-            MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.WokAddItem"),
-                                           {"Material": ToolUtils.getItemDisplayName(MainHandItem)})
-            RemoveItemToPlayer(ClickPlayer, MainHandItem)
-            MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.WokAddItem"))
-            return
-    else:
-        if Data.getInt("Wok." + FileKey + ".Count") > 0:
-            if Config.getBoolean("Setting.Wok.Damage.Enable"):
+            StirCount = Data.getInt("Wok." + FileKey + ".Count", 0)
+            if StirCount > 0 and Config.getBoolean("Setting.Wok.Damage.Enable"):
                 DamageValue = Config.getInt("Setting.Wok.Damage.Value")
                 ClickPlayer.damage(DamageValue)
                 MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.WokScald"))
-                MiniMessageUtils.sendTitle(ClickPlayer,Config.getString("Messages.Title.Scald.MainTitle"),
-                                           Config.getString("Messages.Title.Scald.SubTitle"),{"Damage": DamageValue})
-        ItemList = Data.getStringList("Wok." + FileKey + ".Items")
-        if not ItemList:
-            MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
-            return
-        LastItemEntry = ItemList[-1]
-        Parts = LastItemEntry.split(" ")
-        ItemType = Parts[0]
-        ItemID = Parts[1]
-        Quantity = int(Parts[2])
-        StirTimes = int(Parts[3])
-        Quantity -= 1
-        ItemToGive = ToolUtils.createItemStack(LastItemEntry)
-        if ItemToGive: GiveItemToPlayer(ClickPlayer, ItemToGive)
-        if Quantity <= 0:
-            ItemList.pop()
-            if not ItemList: Data.set("Wok." + FileKey, None)
-            else: Data.set("Wok." + FileKey + ".Items", ItemList)
-            DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), Config, "Wok")
-            NearbyDisplays = FindNearbyDisplay(DisplayLocation)
-            if NearbyDisplays:
-                HighestDisplay = None
-                MaxY = -9999
-                for display in NearbyDisplays:
-                    loc = display.getLocation()
-                    if loc.getY() > MaxY:
-                        MaxY = loc.getY()
-                        HighestDisplay = display
-                if HighestDisplay: HighestDisplay.remove()
-        else:
-            ItemList[-1] = "{} {} {} {}".format(ItemType, ItemID, Quantity, StirTimes)
-            Data.set("Wok." + FileKey + ".Items", ItemList)
-        Data.save()
+                MiniMessageUtils.sendTitle(
+                    ClickPlayer,Config.getString("Messages.Title.Scald.MainTitle"),
+                    Config.getString("Messages.Title.Scald.SubTitle"),{"Damage": str(DamageValue)})
+            ItemList = Data.getStringList("Wok." + FileKey + ".Items")
+            if not ItemList:
+                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
+                EventUtils.setCancelled(Event, EventType, True)
+                return True
+            LastItemEntry = ItemList[-1]
+            Parts = LastItemEntry.split(" ")
+            ItemType = Parts[0]
+            ItemID = Parts[1]
+            Quantity = int(Parts[2])
+            StirTimes = int(Parts[3])
+            Quantity -= 1
+            ItemToGive = ToolUtils.createItemStack(LastItemEntry)
+            if ItemToGive: 
+                GiveItemToPlayer(ClickPlayer, ItemToGive)
+            if Quantity <= 0:
+                ItemList.pop()
+                if not ItemList: 
+                    Data.set("Wok." + FileKey, None)
+                else: 
+                    Data.set("Wok." + FileKey + ".Items", ItemList)
+                DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), "Wok")
+                NearbyDisplays = FindNearbyDisplay(DisplayLocation)
+                if NearbyDisplays:
+                    HighestDisplay = None
+                    MaxY = -9999
+                    for display in NearbyDisplays:
+                        loc = display.getLocation()
+                        if loc.getY() > MaxY:
+                            MaxY = loc.getY()
+                            HighestDisplay = display
+                    if HighestDisplay:
+                        HighestDisplay.remove()
+            else:
+                ItemList[-1] = "{} {} {} {}".format(ItemType, ItemID, Quantity, StirTimes)
+                Data.set("Wok." + FileKey + ".Items", ItemList)
+            Data.save()
+            EventUtils.setCancelled(Event, EventType, True)
+            return True
+    return False
 
-def OutputWokInfo(ClickPlayer, Config, FileKey, HeatLevel):
-    '''输出炒锅信息
-    
-    参数
-        ClickPlayer: 玩家对象
+def GetWokOutput(DataFile, FileKey, ClickPlayer, ClickBlock, HeatLevel=0):
+    '''
+    获取炒锅的输出
+
+    参数:
+        DataFile: 数据文件对象
         Config: 配置文件对象
         FileKey: 炒锅的坐标和世界名
-        HeatLevel: 炒锅的温度等级
-    '''
-    ItemList = Data.getStringList("Wok." + FileKey + ".Items")
-    TotalCount = Data.getString("Wok." + FileKey + ".Count")
-    MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokTop"))
-    for Item in ItemList:
-        Parts = Item.split(" ", 3)
-        PluginName, ItemName, Amount, Count = Parts
-        ItemStack = ToolUtils.createItemStack(Item)
-        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokContent"),
-                                     {"ItemName": ToolUtils.getItemDisplayName(ItemStack),
-                                      "ItemAmount": Amount, "Count": Count})
-    MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokDown"), {"Count": TotalCount})
-    MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokHeatControl"), {"Heat": HeatLevel})
-
-def GetWokOutput(DataFile, Config, FileKey, ClickPlayer, ClickBlock, HeatLevel = 0):
-    '''获取炒锅的输出
-    
-    参数：
-        DataFile - 数据文件
-        Config - 配置文件
-        FileKey -  cooking_wok_data 文件的键值
-        ClickPlayer - 点击的玩家
-        ClickBlock - 点击的方块
-        HeatLevel - 热量等级
+        ClickPlayer: 点击的玩家
+        ClickBlock: 点击的方块
+        HeatLevel: 热源等级 (默认为0)
     '''
     DataStirFryAmount = DataFile.getInt("Wok." + FileKey + ".Count")
-    if DataStirFryAmount == 0: return
+    if DataStirFryAmount == 0:
+        return
     ItemList = DataFile.getStringList("Wok." + FileKey + ".Items")
     if not ItemList:
         MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
         return
     RecipeKeys = WokRecipe.getKeys(False)
-    # 遍历所有配方
     for RecipeKey in RecipeKeys:
         RecipeHeat = WokRecipe.getInt(RecipeKey + ".HeatControl", 0)
-        if RecipeHeat != int(HeatLevel) or int(HeatLevel) == 0: continue
+        if RecipeHeat != int(HeatLevel) and int(HeatLevel) != 0: continue
         RecipeItemList = WokRecipe.getStringList(RecipeKey + ".Item")
         if len(ItemList) != len(RecipeItemList): continue
         Match = True
         GreaterThan = 0
         LessThan = 0
+        Tolerance = WokRecipe.getInt(RecipeKey + ".FaultTolerance", 0)
+        Amount = 0
         for Idx in range(len(ItemList)):
             ItemEntry = ItemList[Idx].split(" ")
             RecipeEntry = RecipeItemList[Idx].split(" ")
             if ItemEntry[0] != RecipeEntry[0] or ItemEntry[1] != RecipeEntry[1]:
                 Match = False
                 break
-            Tolerance = WokRecipe.getInt(RecipeKey + ".FaultTolerance")
-            Amount = 0
-            for I in range(len(ItemList)):
+            if ItemEntry[2] != RecipeEntry[2]:
+                Amount += abs(int(ItemEntry[2]) - int(RecipeEntry[2]))
                 if Amount > Tolerance:
                     Match = False
                     break
-                ItemEntry = ItemList[I].split(" ")
-                RecipeEntry = RecipeItemList[I].split(" ")
-                if ItemEntry[2] != RecipeEntry[2]:
-                    Amount += abs(int(ItemEntry[2]) - int(RecipeEntry[2]))
-                    continue
-                RecipeStirFry = RecipeEntry[3]
-                if "-" in RecipeStirFry:
-                    Num1, Num2 = RecipeStirFry.split("-")
-                    NumRange = range(int(Num1), int(Num2))
-                    if int(ItemEntry[3]) not in NumRange:
-                        if int(ItemEntry[3]) > max(NumRange):
-                            GreaterThan += 1
-                            Amount += 1
-                            continue
-                        elif int(ItemEntry[3]) < min(NumRange):
-                            LessThan += 1
-                            Amount += 1
-                            continue
-                elif int(ItemEntry[3]) != RecipeStirFry:
-                    if int(ItemEntry[3]) > RecipeStirFry:
-                        GreaterThan += 1
-                        Amount += 1
-                        continue
-                    elif int(ItemEntry[3]) < RecipeStirFry:
-                        LessThan += 1
-                        Amount += 1
-                        continue
                 continue
+            RecipeStirFry = RecipeEntry[3]
+            ItemStirFry = int(ItemEntry[3])
+            if "-" in RecipeStirFry:
+                MinValue, MaxValue = map(int, RecipeStirFry.split("-"))
+                if ItemStirFry < MinValue:
+                    LessThan += 1
+                    Amount += 1
+                elif ItemStirFry > MaxValue:
+                    GreaterThan += 1
+                    Amount += 1
+            else:
+                RequiredStirFry = int(RecipeStirFry)
+                if ItemStirFry < RequiredStirFry:
+                    LessThan += 1
+                    Amount += 1
+                elif ItemStirFry > RequiredStirFry:
+                    GreaterThan += 1
+                    Amount += 1
+            if Amount > Tolerance:
+                Match = False
+                break
         if Match:
             StirFryAmount = WokRecipe.get(RecipeKey + ".Count")
-            MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.WokTakeOffItem"))
             if "-" in StirFryAmount:
-                MaxValue, MinValue = StirFryAmount.split("-")
-                RandRange = range(int(MaxValue), int(MinValue))
-                MaxValue = max(RandRange)
-                MinValue = min(RandRange)
+                minValue, maxValue = map(int, StirFryAmount.split("-"))
+                MaxValue = max(minValue, maxValue)
+                MinValue = min(minValue, maxValue)
             else:
                 MaxValue = WokRecipe.getInt(RecipeKey + ".Count")
                 MinValue = WokRecipe.getInt(RecipeKey + ".Count")
@@ -1017,44 +1082,49 @@ def GetWokOutput(DataFile, Config, FileKey, ClickPlayer, ClickBlock, HeatLevel =
             CurrentTime = System.currentTimeMillis()
             if CurrentTime - LastStirTime > Config.getInt("Setting.Wok.TimeOut") * 1000:
                 RawItem = WokRecipe.getString(RecipeKey + ".BURNT")
-                OutputWokItem(RecipeKey, RawItem, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock, Config)
+                OutputWokItem(RecipeKey, RawItem, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock)
+                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.BurntFood"))
                 return
             if DataStirFryAmount > MaxValue:
                 BurntItem = WokRecipe.getString(RecipeKey + ".RAW")
-                OutputWokItem(RecipeKey, BurntItem, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock, Config)
+                OutputWokItem(RecipeKey, BurntItem, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock)
+                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.RawFood"))
                 return
             elif DataStirFryAmount < MinValue:
                 RawItem = WokRecipe.getString(RecipeKey + ".BURNT")
-                OutputWokItem(RecipeKey, RawItem, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock, Config)
+                OutputWokItem(RecipeKey, RawItem, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock)
+                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.BurntFood"))
                 return
             if Config.getBoolean("Setting.Wok.Failure.Enable"):
                 Chance = Config.getInt("Setting.Wok.Failure.Chance")
                 if random.randint(1, 100) < Chance:
                     ErrorRecipe = Config.getString("Setting.Wok.Failure.Type")
-                    OutputWokItem(RecipeKey,ErrorRecipe,WokRecipe,ClickPlayer,DataFile,FileKey,ClickBlock,Config)
+                    OutputWokItem(RecipeKey, ErrorRecipe, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock)
                     MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.FailureRecipe"))
                     return
             if Amount <= Tolerance:
-                OutputWokItem(RecipeKey, RecipeKey, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock, Config)
+                OutputWokItem(RecipeKey, RecipeKey, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock)
                 MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.SuccessRecipe"))
                 return
             elif GreaterThan > LessThan:
                 BurntItem = WokRecipe.getString(RecipeKey + ".BURNT")
-                OutputWokItem(RecipeKey, BurntItem, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock, Config)
+                OutputWokItem(RecipeKey, BurntItem, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock)
+                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.BurntFood"))
                 return
             elif LessThan > GreaterThan:
                 RawItem = WokRecipe.getString(RecipeKey + ".RAW")
-                OutputWokItem(RecipeKey, RawItem, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock, Config)
+                OutputWokItem(RecipeKey, RawItem, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock)
+                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.RawFood"))
                 return
-        else: continue
     if Config.getBoolean("Setting.Wok.Failure.Enable"):
         ErrorRecipe = Config.getString("Setting.Wok.Failure.Type")
-        OutputWokItem(RecipeKey, ErrorRecipe, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock, Config)
+        OutputWokItem(RecipeKey, ErrorRecipe, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock)
         MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.ErrorRecipe"))
+        return
 
-def OutputWokItem(RecipeKey, Item, RecipeConfig, ClickPlayer, DataFile, FileKey, ClickBlock, Config):
+def OutputWokItem(RecipeKey, Item, RecipeConfig, ClickPlayer, DataFile, FileKey, ClickBlock):
     '''输出炒锅物品，并清除展示实体与数据
-    
+
     参数
         RecipeKey: 配方Key
         Item: 输出物品
@@ -1082,28 +1152,29 @@ def OutputWokItem(RecipeKey, Item, RecipeConfig, ClickPlayer, DataFile, FileKey,
     else: GiveItemToPlayer(ClickPlayer, ITEM)
     DataFile.set("Wok." + FileKey, None)
     DataFile.save()
-    DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), Config, "Wok")
+    DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), "Wok")
     NearbyDisplays = FindNearbyDisplay(DisplayLocation)
     if NearbyDisplays:
         for display in NearbyDisplays: display.remove()
 
 class ToolUtils:
     '''工具类'''
-    
+
     # 类常量
     CRAFTENGINE = "craftengine"
     MMOITEMS = "mmoitems"
     MINECRAFT = "minecraft"
-    
+
     @staticmethod
     def isToolItem(Item, Config, Type, Tool):
         '''判断物品是否为指定的工具类型
-        
+
         参数:
             Item: 物品对象
             Config: 配置对象
             Type: 工具类型
             Tool: 工具名称
+
         返回:
             bool: 是否为指定工具
         '''
@@ -1125,7 +1196,15 @@ class ToolUtils:
 
     @staticmethod
     def isCraftEngineItem(Item, ExpectedID):
-        '''检查是否为指定ID的CraftEngine物品'''
+        '''检查是否为指定ID的CraftEngine物品
+
+        参数:
+            Item: 物品对象
+            ExpectedID: 期望的ID
+
+        返回:
+            bool: 是否为指定ID的CraftEngine物品
+        '''
         try:
             from net.momirealms.craftengine.bukkit.api import CraftEngineItems  # type: ignore
             if CraftEngineItems.isCustomItem(Item):
@@ -1135,7 +1214,15 @@ class ToolUtils:
 
     @staticmethod
     def isMMOItemsItem(Item, ExpectedID):
-        '''检查是否为指定ID的MMOItems物品'''
+        '''检查是否为指定ID的MMOItems物品
+
+        参数:
+            Item: 物品对象
+            ExpectedID: 期望的ID
+
+        返回:
+            bool: 是否为指定ID的MMOItems物品
+        '''
         try:
             from io.lumine.mythic.lib.api.item import NBTItem  # type: ignore
             NbtItem = NBTItem.get(Item)
@@ -1149,10 +1236,10 @@ class ToolUtils:
     @staticmethod
     def getItemIdentifier(Item):
         '''获取物品的唯一标识符字符串
-        
+
         参数:
             Item: 物品对象
-        
+
         返回:
             标识符字符串 (格式: "类型 标识符")
         '''
@@ -1171,7 +1258,14 @@ class ToolUtils:
 
     @staticmethod
     def getCraftEngineItemId(Item):
-        '''获取CraftEngine物品ID'''
+        '''获取CraftEngine物品ID
+
+        参数:
+            Item: 物品对象
+
+        返回:
+            str: 物品ID
+        '''
         try:
             from net.momirealms.craftengine.bukkit.api import CraftEngineItems  # type: ignore
             if CraftEngineItems.isCustomItem(Item):
@@ -1180,7 +1274,14 @@ class ToolUtils:
 
     @staticmethod
     def getMMOItemsItemId(Item):
-        '''获取MMOItems物品ID'''
+        '''获取MMOItems物品ID
+
+        参数:
+            Item: 物品对象
+
+        返回:
+            str: 物品ID
+        '''
         try:
             from io.lumine.mythic.lib.api.item import NBTItem  # type: ignore
             NbtItem = NBTItem.get(Item)
@@ -1193,21 +1294,20 @@ class ToolUtils:
     @staticmethod
     def createItemStack(ItemKey, Amount=1):
         '''创建物品栈
-        
+
         参数:
             ItemKey: 物品键
             Amount: 数量
-        
+
         返回:
             ItemStack: 物品栈
         '''
         if not ItemKey: return None
         Parts = ItemKey.split(" ")
-        if len(Parts) < 1: return None
-        if len(Parts) < 3: Amount = Amount
-        else: Amount = int(Parts[2])
+        if len(Parts) < 1:
+            return None
         ItemType = Parts[0]
-        
+
         # 根据物品类型创建不同的物品栈
         if ItemType == ToolUtils.MINECRAFT:
             return ToolUtils.createMinecraftItem(Parts, Amount)
@@ -1225,7 +1325,15 @@ class ToolUtils:
 
     @staticmethod
     def createMinecraftItem(Parts, Amount):
-        '''创建原版Minecraft物品'''
+        '''创建原版Minecraft物品
+
+        参数:
+            Parts: 物品键分割后的列表
+            Amount: 数量
+
+        返回:
+            ItemStack: 物品栈
+        '''
         try:
             if len(Parts) > 1: Item = Material.valueOf(Parts[1])
             else: Item = Material.valueOf(Parts[0])
@@ -1234,7 +1342,15 @@ class ToolUtils:
 
     @staticmethod
     def createCraftEngineItem(Parts, Amount):
-        '''创建CraftEngine物品'''
+        '''创建CraftEngine物品
+
+        参数:
+            Parts: 物品键分割后的列表
+            Amount: 数量
+
+        返回:
+            ItemStack: 物品栈
+        '''
         try:
             from net.momirealms.craftengine.bukkit.api import CraftEngineItems  # type: ignore
             from net.momirealms.craftengine.core.util import Key  # type: ignore
@@ -1248,16 +1364,23 @@ class ToolUtils:
 
     @staticmethod
     def createMMOItemsItem(Parts, Amount):
-        '''创建MMOItems物品'''
+        '''创建MMOItems物品
+
+        参数:
+            Parts: 物品键分割后的列表
+            Amount: 数量
+
+        返回:
+            ItemStack: 物品栈
+        '''
         try:
             from net.Indyuce.mmoitems import MMOItems  # type: ignore
             if len(Parts) > 1:
                 IdParts = Parts[1].split(":")
                 if len(IdParts) >= 2:
                     MMOItemsItem = MMOItems.plugin.getMMOItem(
-                        MMOItems.plugin.getTypes().get(IdParts[0]), 
-                        IdParts[1]
-                    ).newBuilder().build()
+                        MMOItems.plugin.getTypes().get(IdParts[0]), IdParts[1]
+                        ).newBuilder().build()
                     MMOItemsItem.setAmount(Amount)
                     return MMOItemsItem
         except Exception: return None
@@ -1265,11 +1388,11 @@ class ToolUtils:
     @staticmethod
     def getItemDisplayName(Item):
         '''获取物品的显示名称
-        
+
         参数:
             Item: 物品对象
         返回:
-            Obj: 显示名称字符串或组件
+            显示名称字符串或组件
         '''
         # 检查CraftEngine物品
         if CraftEngineAvailable:
@@ -1302,6 +1425,7 @@ def GiveItemToPlayer(Player, Item):
 
 def RemoveItemToPlayer(Player, Item):
     '''移除玩家物品
+    
     参数
         Player: 玩家
         Item: 要移除的物品
@@ -1311,7 +1435,7 @@ def RemoveItemToPlayer(Player, Item):
         Player.getInventory().setItemInMainHand(Item)
     else: Player.getInventory().setItemInMainHand(None)
 
-def CreateItemDisplay(Location, Item, Config, Target):
+def CreateItemDisplay(Location, Item, Target):
     '''创建物品展示实体并设置属性
 
     参数
@@ -1384,7 +1508,7 @@ def GetFileKey(Block):
     '''
     return "{},{},{},{}".format(Block.getX(), Block.getY(), Block.getZ(), Block.getWorld().getName())
 
-def CalculateDisplayLocation(BaseLocation, Config, Target, ExtraOffset = 0):
+def CalculateDisplayLocation(BaseLocation, Target, ExtraOffset = 0):
     '''计算物品展示实体的位置
 
     参数
@@ -1406,7 +1530,7 @@ def CalculateDisplayLocation(BaseLocation, Config, Target, ExtraOffset = 0):
 
 def PlayParticle(location, particleType, count=5, offsetX=0.2, offsetY=0.2, offsetZ=0.2, speed=0.1, force=True):
     '''播放粒子效果
-    
+
     参数:
         location: 粒子生成的位置 (Location对象)
         particleType: 粒子类型 (字符串或Particle枚举)
@@ -1422,7 +1546,7 @@ def PlayParticle(location, particleType, count=5, offsetX=0.2, offsetY=0.2, offs
         if isinstance(particleType, basestring):  # type: ignore
             try: particleType = Particle.valueOf(particleType.upper())
             except: particleType = Particle.CLOUD
-        
+
         # 播放粒子效果
         location.getWorld().spawnParticle(
             particleType,
@@ -1442,7 +1566,7 @@ ps.listener.registerListener(InteractionVanillaBlock, PlayerInteractEvent)
 ps.listener.registerListener(BreakVanillaBlock, BlockBreakEvent)
 
 def CommandExecute(sender, label, args):
-    '''处理/JiuWu's Kitchen命令
+    '''处理命令
 
     参数
         sender: 命令发送者
@@ -1513,14 +1637,10 @@ ps.command.registerCommand(CommandExecute, Tab_CommandExecute, "jiuwukitchen", [
 
 class MiniMessageUtils:
     '''MiniMessage工具类'''
-
-    # 类变量，存储共享资源
     MiniMessages = MiniMessage.miniMessage()
     GsonSerializer = GsonComponentSerializer.gson()
     PlainTextSerializer = PlainTextComponentSerializer.plainText()
-    
-    # 创建 LegacyComponentSerializer 实例
-    LegacySerializer = LegacyComponentSerializer.builder().hexColors().hexCharacter('#').character('&').build()
+    LegacySerializer = LegacyComponentSerializer.builder().hexColors().hexCharacter(u'#').character(u'&').build()
 
     @staticmethod
     def isString(MessageObj):
@@ -1561,9 +1681,7 @@ class MiniMessageUtils:
         '''
         if not MiniMessageUtils.isString(TextStr) or not MiniMessageUtils.containsLegacyColors(TextStr):
             return TextStr
-        # 使用 LegacyComponentSerializer 将传统颜色代码转换为组件
         ComponentObj = MiniMessageUtils.LegacySerializer.deserialize(TextStr)
-        # 将组件序列化为 MiniMessage 格式
         return MiniMessageUtils.MiniMessages.serialize(ComponentObj)
 
     @staticmethod
@@ -1578,9 +1696,7 @@ class MiniMessageUtils:
         '''
         if not MiniMessageUtils.isString(TextStr):
             return Component.empty()
-        # 先转换传统颜色代码
         TextStr = MiniMessageUtils.convertLegacyToMiniMessage(TextStr)
-        # 使用MiniMessage解析为组件
         return MiniMessageUtils.MiniMessages.deserialize(TextStr)
 
     @staticmethod
@@ -1612,7 +1728,6 @@ class MiniMessageUtils:
         '''
         if not MiniMessageUtils.isString(NbtStr):
             return Component.empty()
-
         try:
             return MiniMessageUtils.jsonToComponent(NbtStr)
         except:
@@ -1630,13 +1745,9 @@ class MiniMessageUtils:
         '''
         if not MiniMessageUtils.isString(TextStr) or not isinstance(PlaceholdersDict, dict):
             return TextStr
-
-        # 使用format方法进行替换(更高效)
         try:
-            # 首先尝试使用format方法
             return TextStr.format(**PlaceholdersDict)
         except:
-            # 如果format失败，使用replace方法
             for Placeholder, Replacement in PlaceholdersDict.iteritems():
                 PlaceholderPattern = "{" + Placeholder + "}"
                 TextStr = TextStr.replace(PlaceholderPattern, str(Replacement))
@@ -1735,15 +1846,11 @@ class MiniMessageUtils:
         SubtitleComp = MiniMessageUtils.processMessage(
             SubtitleStr,PlaceholdersDict
             ) if SubtitleStr else Component.empty()
-        
-        # 创建Times对象设置淡入、停留和淡出时间
         Times = Title.Times.times(
             Duration.ofMillis(FadeIn * 50),  # ticks转换为毫秒
             Duration.ofMillis(Stay * 50),
             Duration.ofMillis(FadeOut * 50)
         )
-        
-        # 创建完整的Title对象
         TitleObj = Title.title(TitleComp, SubtitleComp, Times)
         Target.showTitle(TitleObj)
 
@@ -1773,11 +1880,9 @@ class MiniMessageUtils:
         '''
         if not isinstance(Target, Player) or SoundStr is None:
             return
-        # 如果已经是Sound枚举实例，直接使用
         if isinstance(SoundStr, Sound):
             Target.playSound(Target.getLocation(), SoundStr, Volume, Pitch)
             return
-        # 处理字符串类型的声音
         Namespacedkey = None
         if MiniMessageUtils.isString(SoundStr):
             try:
@@ -1785,7 +1890,6 @@ class MiniMessageUtils:
                     Namespace, Key = SoundStr.split(':', 1)
                     Namespacedkey = NamespacedKey(Namespace, Key)
                 else:
-                    # 如果没有指定命名空间，则使用默认命名空间
                     Namespacedkey = NamespacedKey.minecraft(SoundStr.lower())
                 registry_sound = Registry.SOUNDS.get(Namespacedkey)
                 if registry_sound:
@@ -1796,7 +1900,7 @@ class MiniMessageUtils:
 
 # 脚本启动检查
 if ps.script.isScriptRunning("JiuWu's_Kitchen.py"):
-    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"),{"Version": "v1.1.6", "Prefix": Prefix})
+    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"),{"Version": "v1.1.7", "Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console,
                                  u"{Prefix} <red>Discord: <gray>https://discord.gg/jyhbPUkG",{"Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console,u"{Prefix} <red>QQ群: <gray>299852340",{"Prefix": Prefix})
