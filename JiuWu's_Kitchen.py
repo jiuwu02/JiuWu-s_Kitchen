@@ -60,6 +60,9 @@ class ConfigManager:
         configPath = "JiuWu's Kitchen/Config.yml"
         configFile = ps.config.loadConfig(configPath)
 
+        # 通用配置
+        ConfigManager._setConfigValue(configFile, "Setting.General.SearchRadius", 0.45,[u"搜索展示实体的半径"])
+
         # 砧板设置
         ConfigManager._setConfigValue(configFile,"Setting.ChoppingBoard.Drop",True,[u"砧板处理完成后是否掉落成品"])
         ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.StealthInteraction", True, [
@@ -90,15 +93,25 @@ class ConfigManager:
         ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Chance", 10)
         ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Value", 2)
         ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.KitchenKnife.Material", "IRON_AXE")
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Offset.X", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Offset.Y", 1.01)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Offset.Z", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Rotation.X", 90.0)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Rotation.Y", 0.0)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Rotation.Z", 0.0, [
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.X", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.Y", 1.02)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.Z", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Rotation.X", 90.0)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Rotation.Y", 0.0)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Rotation.Z", 0.0, [
             u"允许Z轴旋转角度为小数 (0.0, 360.0)",
             u"也允许为一个范围值随机数 (0.0-360.0)"])
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Scale", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Scale", 0.5)
+
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Offset.X", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Offset.Y", 1.125)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Offset.Z", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Rotation.X", 0.0)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Rotation.Y", 90.0)
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Rotation.Z", 0.0, [
+            u"允许Z轴旋转角度为小数 (0.0, 360.0)",
+            u"也允许为一个范围值随机数 (0.0-360.0)"])
+        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Scale", 0.25)
 
         # 炒锅设置
         ConfigManager._setConfigValue(configFile, "Setting.Wok.Drop", True, [u"炒锅烹饪完成后是否掉落成品"])
@@ -158,15 +171,28 @@ class ConfigManager:
             u"CraftEngine物品: craftengine <Key>:<ID>",
             u"MMOItems物品: mmoitems <Type>:<ID>"])
         ConfigManager._setConfigValue(configFile, "Setting.Wok.Spatula.Material", "IRON_SHOVEL")
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Offset.X", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Offset.Y", 1.01)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Offset.Z", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Rotation.X", 90.0)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Rotation.Y", 0.0)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Rotation.Z", "0.0-90.0", [
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.X", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.Y", 1.02)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.Z", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Rotation.X", 90.0)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Rotation.Y", 0.0)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Rotation.Z", "0.0-90.0", [
             u"允许Z轴旋转角度为小数 (0.0, 360.0)",
             u"也允许为一个范围值随机数 (0.0-360.0)"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Scale", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Scale", 0.5)
+
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Offset.X", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Offset.Y", 1.125)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Offset.Z", 0.5)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Rotation.X", 0.0)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Rotation.Y", 90.0)
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Rotation.Z", 0.0, [
+            u"允许Z轴旋转角度为小数 (0.0, 360.0)",
+            u"也允许为一个范围值随机数 (0.0-360.0)",
+            u"",
+            u"暂不推荐使用"
+            ])
+        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Scale", 0.25)
 
         # 消息设置
         messages = {
@@ -312,10 +338,11 @@ class ConfigManager:
         ConfigManager._choppingBoardRecipe = ConfigManager._loadChoppingBoardRecipe()
         ConfigManager._wokRecipe = ConfigManager._loadWokRecipe()
         ConfigManager._data = ConfigManager._loadData()
+        ConfigManager._prefix = None
 
 # 修改全局变量赋值
 Config = ConfigManager.getConfig()
-Prefix = ConfigManager.getConfig().getString("Messages.Prefix")
+Prefix = ConfigManager.getPrefix()
 ChoppingBoardRecipe = ConfigManager.getChoppingBoardRecipe()
 WokRecipe = ConfigManager.getWokRecipe()
 Data = ConfigManager.getData()
@@ -342,49 +369,35 @@ def ServerPluginLoad():
     if MMOItemsAvailable:
         MiniMessageUtils.sendMessage(Console,Config.getString("Messages.PluginLoad.MMOItems"), {"Prefix": Prefix})
 
-def InteractionVanillaBlock(E):
-    '''处理玩家与原版方块的交互事件
+# 事件监听器
+def InteractionVanillaBlock(Event): return EventHandler.handleInteraction(Event, "vanilla")
 
-    参数
-        E: PlayerInteractEvent事件对象
-    '''
-    # 处理砧板方块
-    if ChoppingBoardInteraction(E, "vanilla"): return
-    # 处理炒锅方块
-    if WokInteraction(E, 'vanilla'): return
+def InteractionCraftEngineBlock(Event): return EventHandler.handleInteraction(Event, "craftengine")
 
-def InteractionCraftEngineBlock(E):
-    '''处理CraftEngine方块的交互事件
+def BreakVanillaBlock(Event): return EventHandler.handleBreak(Event, "vanilla")
 
-    参数
-        E: BlockInteractEvent事件对象
-    '''
-    # 处理砧板方块
-    if ChoppingBoardInteraction(E, "craftengine"): return
-    # 处理炒锅方块
-    if WokInteraction(E, 'craftengine'): return
+def BreakCraftEngineBlock(Event): return EventHandler.handleBreak(Event, "craftengine")
 
-def BreakVanillaBlock(E):
-    '''处理砧板方块被破坏的事件
+class EventHandler:
+    '''统一事件处理类'''
 
-    参数
-        E: BlockBreakEvent事件对象
-    '''
-    # 处理砧板方块
-    if ChoppingBoardBreak(E, "vanilla"): return
-    # 处理炒锅方块
-    if WokBreak(E, "vanilla"): return
+    @staticmethod
+    def handleInteraction(Event, EventType):
+        '''处理交互事件'''
+        # 处理砧板方块
+        if ChoppingBoardInteraction(Event, EventType): return True
+        # 处理炒锅方块
+        if WokInteraction(Event, EventType): return True
+        return False
 
-def BreakCraftEngineBlock(E):
-    '''处理CraftEngine方块被破坏的事件
-
-    参数
-        E: CustomBlockBreakEvent事件对象
-    '''
-    # 处理砧板方块
-    if ChoppingBoardBreak(E, "craftengine"): return
-    # 处理炒锅方块
-    if WokBreak(E, "craftengine"): return
+    @staticmethod
+    def handleBreak(Event, EventType):
+        '''处理破坏事件'''
+        # 处理砧板方块
+        if ChoppingBoardBreak(Event, EventType): return True
+        # 处理炒锅方块
+        if WokBreak(Event, EventType): return True
+        return False
 
 class EventUtils:
     '''事件工具类'''
@@ -562,18 +575,17 @@ class EventUtils:
 
     @staticmethod
     def isTargetBlock(Block, Target):
-        '''判断是否为目标方块
+        '''判断方块是否为目标方块
 
         参数:
             Block: 方块对象
-            Target: 目标类型 (ChoppingBoard 或 Wok)
-            Config: 配置对象
+            Target: 目标类型 (vanilla或craftengine)
 
         返回:
             bool: 是否为目标方块
         '''
+        MaterialSetting = Config.getString("Setting." + Target + ".Material")
         if Config.getBoolean("Setting." + Target + ".Custom"):
-            MaterialSetting = Config.getString("Setting." + Target + ".Material")
             if " " in MaterialSetting:
                 Identifier, ID = MaterialSetting.split(" ", 1)
                 if Identifier == "craftengine":
@@ -582,11 +594,14 @@ class EventUtils:
                         ClickBlockState = CraftEngineBlocks.getCustomBlockState(Block)
                         if ClickBlockState is not None and str(ClickBlockState) == ID:
                             return True
-                    except: pass
+                    except: 
+                        return False
+            return False
         else:
-            if Block.getType() == Material.valueOf(Config.getString("Setting." + Target + ".Material")):
-                return True
-        return False
+            try:
+                return Block.getType() == Material.valueOf(MaterialSetting)
+            except:
+                return False
 
     @staticmethod
     def setCancelled(Event, EventType, Cancelled):
@@ -604,6 +619,28 @@ class EventUtils:
             Event.setCancelled(Cancelled)
         elif EventType == 'craftengine':
             Event.setCancelled(Cancelled)
+
+    @staticmethod
+    def sendParticle(TatgetType, SendLocation):
+        '''发送粒子'''
+        ParticleType = Config.getString("Setting.Particle." +  TatgetType + ".Type")
+        ParticleAmount = Config.getInt("Setting.Particle." +  TatgetType + ".Amount")
+        ParticleoffsetX = Config.getDouble("Setting.Particle." +  TatgetType + ".OffsetX")
+        ParticleoffsetY = Config.getDouble("Setting.Particle." +  TatgetType + ".OffsetY")
+        ParticleoffsetZ = Config.getDouble("Setting.Particle." +  TatgetType + ".OffsetZ")
+        ParticleSpeed = Config.getDouble("Setting.Particle." +  TatgetType + ".Speed")
+        try:
+            ParticleType = Particle.valueOf(ParticleType)
+        except:
+            ParticleType = Particle.valueOf("CLOUD")
+        SendLocation.getWorld().spawnParticle(
+            ParticleType,
+            SendLocation,
+            ParticleAmount,
+            ParticleoffsetX,
+            ParticleoffsetY,
+            ParticleoffsetZ,
+            ParticleSpeed)
 
 def ChoppingBoardBreak(Event, EventType):
     '''砧板破坏事件处理'''
@@ -653,10 +690,17 @@ def ChoppingBoardInteraction(Event, EventType):
     '''砧板交互事件处理'''
     ClickPlayer = EventUtils.getPlayer(Event, EventType)
     ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
+    MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
     if not ClickBlock:
         return False
     if not EventUtils.isMainHand(Event, EventType):
         return False
+    if EventUtils.isRightClick(Event, EventType):
+        Displaylocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard", MainHandItem)
+        NearbyDisplay = FindNearbyDisplay(Displaylocation)
+        if NearbyDisplay:
+            MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.TakeOffItem"))
+            EventUtils.setCancelled(Event, EventType, True)
     if not EventUtils.isLeftClick(Event, EventType): 
         return False
     if not EventUtils.isTargetBlock(ClickBlock, "ChoppingBoard"):
@@ -668,11 +712,10 @@ def ChoppingBoardInteraction(Event, EventType):
             return False
     FileKey = GetFileKey(ClickBlock)
     hasExistingDisplay = Data.contains("ChoppingBoard." + FileKey)
-    MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
     if MainHandItem and MainHandItem.getType() != Material.AIR:
         if hasExistingDisplay:
             if ToolUtils.isToolItem(MainHandItem, Config, "ChoppingBoard", "KitchenKnife"):
-                DisplayLocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard")
+                DisplayLocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard", MainHandItem)
                 ItemDisplayEntities = FindNearbyDisplay(DisplayLocation)
                 if not ItemDisplayEntities: 
                     return False
@@ -687,32 +730,17 @@ def ChoppingBoardInteraction(Event, EventType):
                     EventUtils.setCancelled(Event, EventType, True)
                     MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.CannotCut"))
                     return False
+                RemoveDurability = ChoppingBoardRecipe.getInt(ItemMaterial + ".Durability")
+                RemoveDurability = 1 if RemoveDurability == 0 else RemoveDurability
+                MainHandItem.setDurability(MainHandItem.getDurability() + RemoveDurability)
+                ClickPlayer.getInventory().setItemInMainHand(MainHandItem)
                 CurrentCuts = Data.getInt("ChoppingBoard." + FileKey)
                 CurrentCuts += 1
                 Data.set("ChoppingBoard." + FileKey, CurrentCuts)
                 Data.save()
                 BlockLocation = ClickBlock.getLocation()
-                ParticleLocation = Location(
-                    BlockLocation.getWorld(),
-                    BlockLocation.getX() + 0.5,
-                    BlockLocation.getY() + 1.1,
-                    BlockLocation.getZ() + 0.5
-                )
-                ParticleType = Config.getString("Setting.Particle.ChoppingBoardCutItem.Type", "CLOUD")
-                ParticleAmount = Config.getInt("Setting.Particle.ChoppingBoardCutItem.Amount")
-                ParticleOffsetX = Config.getDouble("Setting.Particle.ChoppingBoardCutItem.OffsetX")
-                ParticleOffsetY = Config.getDouble("Setting.Particle.ChoppingBoardItem.OffsetY")
-                ParticleOffsetZ = Config.getDouble("Setting.Particle.ChoppingBoardCutItem.OffsetZ")
-                ParticleSpeed = Config.getDouble("Setting.Particle.ChoppingBoardCutItem.Speed")
-                PlayParticle(
-                    ParticleLocation,
-                    ParticleType,
-                    ParticleAmount,
-                    ParticleOffsetX,
-                    ParticleOffsetY,
-                    ParticleOffsetZ,
-                    ParticleSpeed
-                )
+                ParticleLocation = ClickBlock.getLocation().add(0.5, 1.1, 0.5)
+                EventUtils.sendParticle("ChoppingBoardCutItem", ParticleLocation)
                 if (Config.getBoolean("Setting.ChoppingBoard.Damage.Enable") and
                     random.randint(1, 100) <= Config.getInt("Setting.ChoppingBoard.Damage.Chance")):
                     DamageValue = Config.getInt("Setting.ChoppingBoard.Damage.Value")
@@ -760,7 +788,7 @@ def ChoppingBoardInteraction(Event, EventType):
                 ClickPlayer.getInventory().setItemInMainHand(MainHandItem)
             else: 
                 ClickPlayer.getInventory().setItemInMainHand(None)
-            DisplayLocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard")
+            DisplayLocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard", MainHandItem)
             CreateItemDisplay(DisplayLocation, DisplayItem, "ChoppingBoard")
             MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.ChoppingBoardAddItem"))
             if not Data.contains("ChoppingBoard." + FileKey):
@@ -770,7 +798,7 @@ def ChoppingBoardInteraction(Event, EventType):
             return True
     elif not MainHandItem or MainHandItem.getType() == Material.AIR:
         if hasExistingDisplay:
-            DisplayLocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard")
+            DisplayLocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard", MainHandItem)
             ItemDisplayEntities = FindNearbyDisplay(DisplayLocation)
             if not ItemDisplayEntities: 
                 return False
@@ -795,12 +823,9 @@ def WokInteraction(Event, EventType):
     '''
     ClickPlayer = EventUtils.getPlayer(Event, EventType)
     ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
-    if not ClickBlock:
-        return False
-    if not EventUtils.isMainHand(Event, EventType):
-        return False
-    if not EventUtils.isTargetBlock(ClickBlock, "Wok"):
-        return False
+    if not ClickBlock: return False
+    if not EventUtils.isMainHand(Event, EventType): return False
+    if not EventUtils.isTargetBlock(ClickBlock, "Wok"): return False
     FileKey = GetFileKey(ClickBlock)
     HeatLevel = 0
     BottomBlock = ClickBlock.getRelative(BlockFace.DOWN)
@@ -816,10 +841,8 @@ def WokInteraction(Event, EventType):
                     HeatLevel = Config.getInt("Setting.Wok.HeatControl." + CraftEngineKey)
         except: 
             pass
-    if BottomBlockType in HeatControl:
-        HeatLevel = Config.getInt("Setting.Wok.HeatControl." + BottomBlockType)
-    if not EventUtils.isSneaking(ClickPlayer, "Wok"):
-        return False
+    if BottomBlockType in HeatControl: HeatLevel = Config.getInt("Setting.Wok.HeatControl." + BottomBlockType)
+    if not EventUtils.isSneaking(ClickPlayer, "Wok"): return False
     if EventUtils.isRightClick(Event, EventType):
         MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
         if not ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula"): 
@@ -849,10 +872,8 @@ def WokInteraction(Event, EventType):
             return True
     elif EventUtils.isLeftClick(Event, EventType):
         hasExistingDisplay = Data.get("Wok")
-        if hasExistingDisplay: 
-            hasExistingDisplay = hasExistingDisplay.contains(FileKey)
-        else:  
-            hasExistingDisplay = False
+        if hasExistingDisplay:  hasExistingDisplay = hasExistingDisplay.contains(FileKey)
+        else:   hasExistingDisplay = False
         MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
         if MainHandItem and ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula"):
             ItemList = Data.getStringList("Wok." + FileKey + ".Items")
@@ -872,20 +893,13 @@ def WokInteraction(Event, EventType):
                 MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.StirFriedTooQuickly"))
                 EventUtils.setCancelled(Event, EventType, True)
                 return True
-            particleType = Config.getString("Setting.Particle.WokStirItem.Type", "CAMPFIRE_COSY_SMOKE")
-            particleAmount = Config.getInt("Setting.Particle.WokStirItem.Amount")
-            particleoffsetX = Config.getDouble("Setting.Particle.WokStirItem.OffsetX")
-            particleoffsetY = Config.getDouble("Setting.Particle.WokStirItem.OffsetY")
-            particleoffsetZ = Config.getDouble("Setting.Particle.WokStirItem.OffsetZ")
-            particleSpeed = Config.getDouble("Setting.Particle.WokStirItem.Speed")
-            particleLocation = ClickBlock.getLocation().add(0.5, 1.1, 0.5)
-            PlayParticle(
-                particleLocation, particleType, particleAmount,
-                particleoffsetX, particleoffsetY, particleoffsetZ,
-                particleSpeed)
+            ParticleLocation = ClickBlock.getLocation().add(0.5, 1.1, 0.5)
+            EventUtils.sendParticle("WokStirItem", ParticleLocation)
             Data.set("Wok." + FileKey + ".StirFriedTime", System.currentTimeMillis())
             Data.set("Wok." + FileKey + ".LastStirTime", System.currentTimeMillis())
             StirCount += 1
+            MainHandItem.setDurability(MainHandItem.getDurability() + 1)
+            ClickPlayer.getInventory().setItemInMainHand(MainHandItem)
             Data.set("Wok." + FileKey + ".Count", StirCount)
             UpdatedItemList = []
             for ItemEntry in ItemList:
@@ -913,7 +927,7 @@ def WokInteraction(Event, EventType):
             if hasExistingDisplay:
                 ItemList = Data.getStringList("Wok." + FileKey + ".Items")
                 NeedAddItem = False
-                DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), "Wok")
+                DisplayLocation = CalculateDisplayLocation(ClickBlock, "Wok", MainHandItem)
                 NearbyDisplays = FindNearbyDisplay(DisplayLocation)
                 for Index, ItemEntry in enumerate(ItemList):
                     Parts = ItemEntry.split(" ")
@@ -936,7 +950,7 @@ def WokInteraction(Event, EventType):
                     ExtraOffset = 0.0001 * ItemListLength
                     ItemList.append(CurrentItemIdentifier + " 1 0")
                     DisplayItem = MainHandItem.clone()
-                    DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), "Wok", ExtraOffset)
+                    DisplayLocation = CalculateDisplayLocation(ClickBlock, "Wok", MainHandItem, ExtraOffset)
                     CreateItemDisplay(DisplayLocation, DisplayItem, "Wok")
                 Data.set("Wok." + FileKey + ".Items", list(ItemList))
                 Data.save()
@@ -948,7 +962,7 @@ def WokInteraction(Event, EventType):
                 Data.set("Wok." + FileKey + ".Count", 0)
                 Data.save()
                 DisplayItem = MainHandItem.clone()
-                DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), "Wok")
+                DisplayLocation = CalculateDisplayLocation(ClickBlock, "Wok", MainHandItem)
                 CreateItemDisplay(DisplayLocation, DisplayItem, "Wok")
             MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.WokAddItem"),
                 {"Material": ToolUtils.getItemDisplayName(MainHandItem)})
@@ -970,37 +984,64 @@ def WokInteraction(Event, EventType):
                 MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
                 EventUtils.setCancelled(Event, EventType, True)
                 return True
+
+            # 获取最后一个物品条目
             LastItemEntry = ItemList[-1]
             Parts = LastItemEntry.split(" ")
             ItemType = Parts[0]
             ItemID = Parts[1]
             Quantity = int(Parts[2])
             StirTimes = int(Parts[3])
-            Quantity -= 1
+
+            # 创建要给予玩家的物品
             ItemToGive = ToolUtils.createItemStack(LastItemEntry)
             if ItemToGive: 
                 GiveItemToPlayer(ClickPlayer, ItemToGive)
+
+            # 减少数量或移除条目
+            Quantity -= 1
             if Quantity <= 0:
                 ItemList.pop()
                 if not ItemList: 
                     Data.set("Wok." + FileKey, None)
                 else: 
                     Data.set("Wok." + FileKey + ".Items", ItemList)
-                DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), "Wok")
+
+                # 查找并删除对应的展示实体
+                DisplayLocation = CalculateDisplayLocation(ClickBlock, "Wok", ItemToGive)
                 NearbyDisplays = FindNearbyDisplay(DisplayLocation)
                 if NearbyDisplays:
-                    HighestDisplay = None
-                    MaxY = -9999
+                    # 创建用于比较的物品标识符
+                    TargetIdentifier = ToolUtils.getItemIdentifier(ItemToGive)
+
+                    # 查找匹配的展示实体
                     for display in NearbyDisplays:
-                        loc = display.getLocation()
-                        if loc.getY() > MaxY:
-                            MaxY = loc.getY()
-                            HighestDisplay = display
-                    if HighestDisplay:
-                        HighestDisplay.remove()
+                        if display and not display.isDead():
+                            displayItem = display.getItemStack()
+                            if displayItem and ToolUtils.getItemIdentifier(displayItem) == TargetIdentifier:
+                                display.remove()
+                                break
             else:
+                # 更新物品列表中的数量
                 ItemList[-1] = "{} {} {} {}".format(ItemType, ItemID, Quantity, StirTimes)
                 Data.set("Wok." + FileKey + ".Items", ItemList)
+
+                # 更新展示实体的数量显示
+                DisplayLocation = CalculateDisplayLocation(ClickBlock, "Wok", ItemToGive)
+                NearbyDisplays = FindNearbyDisplay(DisplayLocation)
+                if NearbyDisplays:
+                    # 创建用于比较的物品标识符
+                    TargetIdentifier = ToolUtils.getItemIdentifier(ItemToGive)
+
+                    # 查找匹配的展示实体并更新数量
+                    for display in NearbyDisplays:
+                        if display and not display.isDead():
+                            displayItem = display.getItemStack()
+                            if displayItem and ToolUtils.getItemIdentifier(displayItem) == TargetIdentifier:
+                                displayItem.setAmount(Quantity)
+                                display.setItemStack(displayItem)
+                                break
+
             Data.save()
             EventUtils.setCancelled(Event, EventType, True)
             return True
@@ -1018,6 +1059,7 @@ def GetWokOutput(DataFile, FileKey, ClickPlayer, ClickBlock, HeatLevel=0):
         ClickBlock: 点击的方块
         HeatLevel: 热源等级 (默认为0)
     '''
+    MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
     DataStirFryAmount = DataFile.getInt("Wok." + FileKey + ".Count")
     if DataStirFryAmount == 0:
         return
@@ -1070,6 +1112,7 @@ def GetWokOutput(DataFile, FileKey, ClickPlayer, ClickBlock, HeatLevel=0):
                 Match = False
                 break
         if Match:
+            RemoveItemToPlayer(ClickPlayer, MainHandItem)
             StirFryAmount = WokRecipe.get(RecipeKey + ".Count")
             if "-" in StirFryAmount:
                 minValue, maxValue = map(int, StirFryAmount.split("-"))
@@ -1117,6 +1160,7 @@ def GetWokOutput(DataFile, FileKey, ClickPlayer, ClickBlock, HeatLevel=0):
                 MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.RawFood"))
                 return
     if Config.getBoolean("Setting.Wok.Failure.Enable"):
+        RemoveItemToPlayer(ClickPlayer, MainHandItem)
         ErrorRecipe = Config.getString("Setting.Wok.Failure.Type")
         OutputWokItem(RecipeKey, ErrorRecipe, WokRecipe, ClickPlayer, DataFile, FileKey, ClickBlock)
         MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.ErrorRecipe"))
@@ -1152,7 +1196,7 @@ def OutputWokItem(RecipeKey, Item, RecipeConfig, ClickPlayer, DataFile, FileKey,
     else: GiveItemToPlayer(ClickPlayer, ITEM)
     DataFile.set("Wok." + FileKey, None)
     DataFile.save()
-    DisplayLocation = CalculateDisplayLocation(ClickBlock.getLocation(), "Wok")
+    DisplayLocation = CalculateDisplayLocation(ClickBlock, "Wok")
     NearbyDisplays = FindNearbyDisplay(DisplayLocation)
     if NearbyDisplays:
         for display in NearbyDisplays: display.remove()
@@ -1164,6 +1208,24 @@ class ToolUtils:
     CRAFTENGINE = "craftengine"
     MMOITEMS = "mmoitems"
     MINECRAFT = "minecraft"
+
+    @staticmethod
+    def isBlockMaterialType(Item):
+        '''判断物品是否为方块材质
+
+        参数:
+            Item: 物品对象
+
+        返回:
+            str: 材质类型
+        '''
+        if Item is None:
+            return "Item"
+        ItemType = Item.getType()
+        if ItemType.isBlock():
+            return "Block"
+        else:
+            return "Item"
 
     @staticmethod
     def isToolItem(Item, Config, Type, Tool):
@@ -1241,7 +1303,7 @@ class ToolUtils:
             Item: 物品对象
 
         返回:
-            标识符字符串 (格式: "类型 标识符")
+            str: 标识符字符串 (格式: "类型 标识符")
         '''
         # 检查CraftEngine物品
         if CraftEngineAvailable:
@@ -1425,7 +1487,7 @@ def GiveItemToPlayer(Player, Item):
 
 def RemoveItemToPlayer(Player, Item):
     '''移除玩家物品
-    
+
     参数
         Player: 玩家
         Item: 要移除的物品
@@ -1441,20 +1503,20 @@ def CreateItemDisplay(Location, Item, Target):
     参数
         Location: 生成位置
         Item: 展示的物品
-        Config: 配置对象
-        Target: 配方目标
+        Target: 目标
     返回
         创建的展示实体
     '''
     ItemDisplayEntity = Location.getWorld().spawn(Location, ItemDisplay)
     DisplayItem = Item.clone()
+    Type = ToolUtils.isBlockMaterialType(DisplayItem)
     DisplayItem.setAmount(1)
     ItemDisplayEntity.setItemStack(Item)
-    Scale = Config.getDouble("Setting." + Target + ".DisplayEntity.Scale")
+    Scale = Config.getDouble("Setting." + Target + ".DisplayEntity." + Type + ".Scale")
     ScaleVector = Vector3f(Scale, Scale, Scale)
-    RotX = Config.getDouble("Setting." + Target + ".DisplayEntity.Rotation.X", 0.0)
-    RotY = Config.getDouble("Setting." + Target + ".DisplayEntity.Rotation.Y", 0.0)
-    RotZConfig = Config.get("Setting." + Target + ".DisplayEntity.Rotation.Z")
+    RotX = Config.getDouble("Setting." + Target + ".DisplayEntity." + Type + ".Rotation.X")
+    RotY = Config.getDouble("Setting." + Target + ".DisplayEntity." + Type + ".Rotation.Y")
+    RotZConfig = Config.get("Setting." + Target + ".DisplayEntity." + Type + ".Rotation.Z")
     RotZ = 0.0
     if isinstance(RotZConfig, basestring):  # type: ignore
         if "-" in RotZConfig:
@@ -1494,7 +1556,8 @@ def FindNearbyDisplay(Location):
         找到的物品展示实体或None
     '''
     FoundEntities = []
-    for entity in Location.getWorld().getNearbyEntities(Location, 0.25, 0.25, 0.25):
+    Radius = Config.getDouble("Setting.General.SearchRadius")
+    for entity in Location.getWorld().getNearbyEntities(Location, Radius, Radius, Radius):
         if entity.getType() == EntityType.ITEM_DISPLAY: FoundEntities.append(entity)
     return FoundEntities if FoundEntities else None
 
@@ -1504,63 +1567,30 @@ def GetFileKey(Block):
     参数
         Block: 砧板方块
     返回
-        数据文件键
+        str: 数据文件键
     '''
     return "{},{},{},{}".format(Block.getX(), Block.getY(), Block.getZ(), Block.getWorld().getName())
 
-def CalculateDisplayLocation(BaseLocation, Target, ExtraOffset = 0):
+def CalculateDisplayLocation(Block, Target, Item = None, ExtraOffset = 0):
     '''计算物品展示实体的位置
 
     参数
         BaseLocation: 基础位置
-        Config: 配置对象
         Target: 配方目标
+        Item: 物品ItemStack
         ExtraOffset: 额外偏移量
     返回
-        展示实体的位置
+        展示实体的位置对象
     '''
-    Offset_X = Config.getDouble("Setting." + Target + ".DisplayEntity.Offset.X")
-    Offset_Y = Config.getDouble("Setting." + Target + ".DisplayEntity.Offset.Y")
-    Offset_Z = Config.getDouble("Setting." + Target + ".DisplayEntity.Offset.Z")
+    Type = ToolUtils.isBlockMaterialType(Item)
+    Offset_X = Config.getDouble("Setting." + Target + ".DisplayEntity." + Type + ".Offset.X")
+    Offset_Y = Config.getDouble("Setting." + Target + ".DisplayEntity." + Type + ".Offset.Y")
+    Offset_Z = Config.getDouble("Setting." + Target + ".DisplayEntity." + Type + ".Offset.Z")
     return Location(
-        BaseLocation.getWorld(),
-        BaseLocation.getX() + Offset_X,
-        BaseLocation.getY() + Offset_Y + ExtraOffset,
-        BaseLocation.getZ() + Offset_Z)
-
-def PlayParticle(location, particleType, count=5, offsetX=0.2, offsetY=0.2, offsetZ=0.2, speed=0.1, force=True):
-    '''播放粒子效果
-
-    参数:
-        location: 粒子生成的位置 (Location对象)
-        particleType: 粒子类型 (字符串或Particle枚举)
-        count: 粒子数量 (默认5)
-        offsetX: X轴偏移范围 (默认0.2)
-        offsetY: Y轴偏移范围 (默认0.2)
-        offsetZ: Z轴偏移范围 (默认0.2)
-        speed: 粒子速度 (默认0.1)
-        force: 是否强制显示给远处玩家 (默认True)
-    '''
-    try:
-        # 如果particleType是字符串，尝试转换为Particle枚举
-        if isinstance(particleType, basestring):  # type: ignore
-            try: particleType = Particle.valueOf(particleType.upper())
-            except: particleType = Particle.CLOUD
-
-        # 播放粒子效果
-        location.getWorld().spawnParticle(
-            particleType,
-            location,
-            count,
-            offsetX,
-            offsetY,
-            offsetZ,
-            speed,
-            None,  # 额外的粒子数据，默认为None
-            force
-        )
-    except Exception as e:
-        pass
+        Block.getWorld(),
+        Block.getX() + Offset_X,
+        Block.getY() + Offset_Y + ExtraOffset,
+        Block.getZ() + Offset_Z)
 
 ps.listener.registerListener(InteractionVanillaBlock, PlayerInteractEvent)
 ps.listener.registerListener(BreakVanillaBlock, BlockBreakEvent)
@@ -1573,7 +1603,7 @@ def CommandExecute(sender, label, args):
         label: 命令标签
         args: 命令参数
     返回
-        命令执行结果
+        bool: 命令执行结果
     '''
     if len(args) == 0: return False
     if args[0] == "reload":
@@ -1612,6 +1642,12 @@ def CommandExecute(sender, label, args):
 
 def ReloadPlugin(Target = Console):
     ConfigManager.reloadAll()
+    global Config, Prefix, ChoppingBoardRecipe, WokRecipe, Data
+    Config = ConfigManager.getConfig()
+    Prefix = ConfigManager.getPrefix()
+    ChoppingBoardRecipe = ConfigManager.getChoppingBoardRecipe()
+    WokRecipe = ConfigManager.getWokRecipe()
+    Data = ConfigManager.getData()
     ChoppingBoardRecipeAmount = ChoppingBoardRecipe.getKeys(False).size()
     WokRecipeAmount = WokRecipe.getKeys(False).size()
     MiniMessageUtils.sendMessage(Target, Config.getString("Messages.Reload.LoadChoppingBoardRecipe"),
@@ -1619,7 +1655,7 @@ def ReloadPlugin(Target = Console):
     MiniMessageUtils.sendMessage(Target, Config.getString("Messages.Reload.LoadWokRecipe"),
                                  {"Prefix": Prefix, "Amount": int(WokRecipeAmount)})
 
-def Tab_CommandExecute(sender, label, args):
+def TabCommandExecute(sender, label, args):
     '''提供命令的补全建议
 
     参数
@@ -1627,16 +1663,18 @@ def Tab_CommandExecute(sender, label, args):
         label: 命令标签
         args: 命令参数
     返回
-        补全建议列表
+        list: 补全建议
     '''
     if isinstance(sender, Player):
         return ["reload", "clear", "hand"]
     return ["reload"]
 
-ps.command.registerCommand(CommandExecute, Tab_CommandExecute, "jiuwukitchen", ["jk"], "")
+ps.command.registerCommand(CommandExecute, TabCommandExecute, "jiuwukitchen", ["jk"], "")
 
 class MiniMessageUtils:
     '''MiniMessage工具类'''
+    
+    # 类常量
     MiniMessages = MiniMessage.miniMessage()
     GsonSerializer = GsonComponentSerializer.gson()
     PlainTextSerializer = PlainTextComponentSerializer.plainText()
@@ -1900,7 +1938,7 @@ class MiniMessageUtils:
 
 # 脚本启动检查
 if ps.script.isScriptRunning("JiuWu's_Kitchen.py"):
-    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"),{"Version": "v1.1.7", "Prefix": Prefix})
+    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"),{"Version": "v1.1.9", "Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console,
                                  u"{Prefix} <red>Discord: <gray>https://discord.gg/jyhbPUkG",{"Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console,u"{Prefix} <red>QQ群: <gray>299852340",{"Prefix": Prefix})
