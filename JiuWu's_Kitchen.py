@@ -303,7 +303,7 @@ class ConfigManager:
     def _loadChoppingBoardRecipe():
         """加载砧板配方配置文件
 
-        返回: 
+        返回:
             对象: 砧板配方文件
         """
         choppingBoardRecipePath = "JiuWu's Kitchen/Recipe/ChoppingBoard.yml"
@@ -313,7 +313,7 @@ class ConfigManager:
     def _loadWokRecipe():
         """加载炒锅配方配置文件
 
-        返回: 
+        返回:
             对象: 砧板配方文件
         """
         wokRecipePath = "JiuWu's Kitchen/Recipe/Wok.yml"
@@ -657,13 +657,13 @@ class MiniMessageUtils:
                     namespaced_key = NamespacedKey(namespace, key)
                 else:
                     namespaced_key = NamespacedKey.minecraft(SoundStr.lower())
-                
+
                 registry_sound = Registry.SOUNDS.get(namespaced_key)
                 if registry_sound:
                     SoundObj = registry_sound
             except Exception:
                 pass
-        
+
         # 播放声音
         if SoundObj:
             if isinstance(Target, Player):
@@ -752,6 +752,20 @@ class EventUtils:
         if EventType == "vanilla": return Event.getPlayer()
         elif EventType == "craftengine": return Event.player()
         return None
+
+    @staticmethod
+    def getPermission(Player, PermissionNode):
+        """获取事件中玩家对象的权限
+
+        参数:
+            Permissions: 权限字符串
+
+        返回:
+            bool: 是否拥有权限
+        """
+        if Player is None:
+            return False
+        return Player.hasPermission(PermissionNode)
 
     @staticmethod
     def getInteractionBlock(Event, EventType):
@@ -1274,11 +1288,15 @@ def GrinderBreak(Event, EventType):
     return True
 
 def ChoppingBoardInteraction(Event, EventType):
-    """砧板交互事件处理"""
+    """砧砧板交互事件处理"""
     ClickPlayer = EventUtils.getPlayer(Event, EventType)
     ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
     MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
     if not ClickBlock: return False
+    if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.choppingboard.interaction"):
+        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+        EventUtils.setCancelled(Event, EventType, True)
+        return False
     if not EventUtils.isMainHand(Event, EventType): return False
     if EventUtils.isRightClick(Event, EventType):
         Displaylocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard", MainHandItem)
@@ -1294,6 +1312,10 @@ def ChoppingBoardInteraction(Event, EventType):
     FileKey = GetFileKey(ClickBlock)
     hasExistingDisplay = Data.contains("ChoppingBoard." + FileKey)
     if MainHandItem and MainHandItem.getType() != Material.AIR:
+        if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.choppingboard.cut"):
+            MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+            EventUtils.setCancelled(Event, EventType, True)
+            return
         if hasExistingDisplay:
             if ToolUtils.isToolItem(MainHandItem, Config, "ChoppingBoard", "KitchenKnife"):
                 DisplayLocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard", MainHandItem)
@@ -1304,7 +1326,12 @@ def ChoppingBoardInteraction(Event, EventType):
                 if not DisplayItem:  return False
                 ItemMaterial = ToolUtils.getItemIdentifier(DisplayItem)
                 RequiredCuts = ChoppingBoardRecipe.getInt(ItemMaterial + ".Count")
-                ResultMaterial = ChoppingBoardRecipe.getString(ItemMaterial + ".Output")
+                ReplacePermission = ChoppingBoardRecipe.getString(ItemMaterial + ".Permission")
+                if ReplacePermission and not EventUtils.getPermission(ClickPlayer, ReplacePermission):
+                    EventUtils.setCancelled(Event, EventType, True)
+                    MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+                    return False
+                ResultMaterials = ChoppingBoardRecipe.getStringList(ItemMaterial + ".Output")
                 if not RequiredCuts or RequiredCuts == 0:
                     EventUtils.setCancelled(Event, EventType, True)
                     MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.CannotCut"))
@@ -1320,32 +1347,55 @@ def ChoppingBoardInteraction(Event, EventType):
                 BlockLocation = ClickBlock.getLocation()
                 ParticleLocation = ClickBlock.getLocation().add(0.5, 1.1, 0.5)
                 EventUtils.sendParticle("ChoppingBoardCutItem", ParticleLocation)
-                if (Config.getBoolean("Setting.ChoppingBoard.Damage.Enable") and
-                    random.randint(1, 100) <= Config.getInt("Setting.ChoppingBoard.Damage.Chance")):
+                DamageChance = None
+                DamageValue = None
+                RecipeDamagePath = ItemMaterial + ".Damage"
+                if ChoppingBoardRecipe.contains(RecipeDamagePath):
+                    DamageChance = ChoppingBoardRecipe.getInt(RecipeDamagePath + ".Chance")
+                    DamageValue = ChoppingBoardRecipe.getInt(RecipeDamagePath + ".Value")
+                elif Config.getBoolean("Setting.ChoppingBoard.Damage.Enable"):
+                    DamageChance = Config.getInt("Setting.ChoppingBoard.Damage.Chance")
                     DamageValue = Config.getInt("Setting.ChoppingBoard.Damage.Value")
-                    ClickPlayer.damage(DamageValue)
-                    MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.ChoppingBoardCutHand"))
-                    MiniMessageUtils.sendTitle(ClickPlayer,Config.getString("Messages.Title.CutHand.MainTitle"),
-                        Config.getString("Messages.Title.CutHand.SubTitle"),{"Damage": str(DamageValue)})
+                if DamageChance is not None and DamageValue is not None:
+                    if random.randint(1, 100) <= DamageChance:
+                        ClickPlayer.damage(DamageValue)
+                        MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.ChoppingBoardCutHand"))
+                        MiniMessageUtils.sendTitle(ClickPlayer,Config.getString("Messages.Title.CutHand.MainTitle"),
+                            Config.getString("Messages.Title.CutHand.SubTitle"),{"Damage": str(DamageValue)})
                 MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.CutAmount"),
                     {"CurrentCount": str(CurrentCuts), "NeedCount": str(RequiredCuts)})
                 MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.ChoppingBoardCutItem"))
                 if CurrentCuts >= RequiredCuts:
-                    if " " in ResultMaterial:  GiveItem = ResultMaterial
-                    else:  GiveItem = ItemMaterial
-                    GiveAmount = ChoppingBoardRecipe.getInt(ItemMaterial + ".OutputAmount")
-                    ResultItemStack = ToolUtils.createItemStack(GiveItem, GiveAmount)
-                    if not ResultItemStack:
-                        MiniMessageUtils.sendMessage(Console, Config.getString("Messages.InvalidMaterial"),
-                            {"Prefix": Prefix, "Material": ResultMaterial})
-                        return False
+                    if ResultMaterials and len(ResultMaterials) > 0:
+                        for ResultMaterial in ResultMaterials:
+                            Parts = ResultMaterial.split(" ")
+                            if len(Parts) < 4:
+                                continue
+                            ItemNamespace = Parts[0]
+                            ItemId = Parts[1]
+                            AmountRange = Parts[2]
+                            Chance = int(Parts[3])
+                            if random.randint(1, 100) > Chance:
+                                continue
+                            if "-" in AmountRange:
+                                MinAmount, MaxAmount = map(int, AmountRange.split("-"))
+                                Amount = random.randint(MinAmount, MaxAmount)
+                            else:
+                                Amount = int(AmountRange)
+                            ItemKey = "{} {}".format(ItemNamespace, ItemId)
+                            ResultItemStack = ToolUtils.createItemStack(ItemKey, Amount)
+                            if not ResultItemStack:
+                                MiniMessageUtils.sendMessage(Console, Config.getString("Messages.InvalidMaterial"),
+                                    {"Prefix": Prefix, "Material": ItemKey})
+                                continue
+                            DropLocation = Location(BlockLocation.getWorld(), BlockLocation.getX() + 0.5,
+                                BlockLocation.getY() + 1.0, BlockLocation.getZ() + 0.5)
+                            if Config.getBoolean("Setting.ChoppingBoard.Drop"):
+                                ItemEntity = BlockLocation.getWorld().dropItem(DropLocation, ResultItemStack)
+                                ItemEntity.setPickupDelay(20)
+                            else:
+                                GiveItemToPlayer(ClickPlayer, ResultItemStack)
                     ItemDisplayEntity.remove()
-                    DropLocation = Location(BlockLocation.getWorld(), BlockLocation.getX() + 0.5,
-                        BlockLocation.getY() + 1.0, BlockLocation.getZ() + 0.5)
-                    if Config.getBoolean("Setting.ChoppingBoard.Drop"):
-                        ItemEntity = BlockLocation.getWorld().dropItem(DropLocation, ResultItemStack)
-                        ItemEntity.setPickupDelay(20)
-                    else: GiveItemToPlayer(ClickPlayer, ResultItemStack)
                     Data.set("ChoppingBoard." + FileKey, None)
                     Data.save()
                     EventUtils.setCancelled(Event, EventType, True)
@@ -1397,6 +1447,10 @@ def WokInteraction(Event, EventType):
     ClickPlayer = EventUtils.getPlayer(Event, EventType)
     ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
     if not ClickBlock: return False
+    if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.wok.interaction"):
+        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+        EventUtils.setCancelled(Event, EventType, True)
+        return
     if not EventUtils.isMainHand(Event, EventType): return False
     if not EventUtils.isTargetBlock(ClickBlock, "Wok"): return False
     FileKey = GetFileKey(ClickBlock)
@@ -1410,7 +1464,7 @@ def WokInteraction(Event, EventType):
             if CraftEngineBlocks.isCustomBlock(BottomBlock):
                 BottomBlockState = CraftEngineBlocks.getCustomBlockState(BottomBlock)
                 CraftEngineKey = "craftengine " + str(BottomBlockState)
-                if CraftEngineKey in HeatControl: 
+                if CraftEngineKey in HeatControl:
                     HeatLevel = Config.getInt("Setting.Wok.HeatControl." + CraftEngineKey)
         except:  pass
     if BottomBlockType in HeatControl: HeatLevel = Config.getInt("Setting.Wok.HeatControl." + BottomBlockType)
@@ -1440,9 +1494,13 @@ def WokInteraction(Event, EventType):
             EventUtils.setCancelled(Event, EventType, True)
             return True
     elif EventUtils.isLeftClick(Event, EventType):
+        if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.wok.stirfry"):
+            MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+            EventUtils.setCancelled(Event, EventType, True)
+            return
         hasExistingDisplay = Data.get("Wok")
         if hasExistingDisplay:  hasExistingDisplay = hasExistingDisplay.contains(FileKey)
-        else:   hasExistingDisplay = False
+        else: hasExistingDisplay = False
         MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
         if MainHandItem and ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula"):
             ItemList = Data.getStringList("Wok." + FileKey + ".Items")
@@ -1488,6 +1546,10 @@ def WokInteraction(Event, EventType):
             return True
         NeedBowl = Config.getBoolean("Setting.Wok.NeedBowl")
         if NeedBowl and MainHandItem and MainHandItem.getType() == Material.BOWL:
+            if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.wok.serveout"):
+                MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+                EventUtils.setCancelled(Event, EventType, True)
+                return
             GetWokOutput(Data, FileKey, ClickPlayer, ClickBlock, HeatLevel)
             EventUtils.setCancelled(Event, EventType, True)
             return True
@@ -1524,7 +1586,7 @@ def WokInteraction(Event, EventType):
                 Data.set("Wok." + FileKey + ".Items", list(ItemList))
                 Data.save()
             else:
-                if not BottomBlockType in HeatControl: 
+                if not BottomBlockType in HeatControl:
                     return False
                 SaveValue = CurrentItemIdentifier + " 1 0"
                 Data.set("Wok." + FileKey + ".Items", [SaveValue])
@@ -1564,16 +1626,16 @@ def WokInteraction(Event, EventType):
 
             # 创建要给予玩家的物品
             ItemToGive = ToolUtils.createItemStack(LastItemEntry)
-            if ItemToGive: 
+            if ItemToGive:
                 GiveItemToPlayer(ClickPlayer, ItemToGive)
 
             # 减少数量或移除条目
             Quantity -= 1
             if Quantity <= 0:
                 ItemList.pop()
-                if not ItemList: 
+                if not ItemList:
                     Data.set("Wok." + FileKey, None)
-                else: 
+                else:
                     Data.set("Wok." + FileKey + ".Items", ItemList)
 
                 # 查找并删除对应的展示实体
@@ -1638,6 +1700,9 @@ def GetWokOutput(DataFile, FileKey, ClickPlayer, ClickBlock, HeatLevel=0):
         return
     RecipeKeys = WokRecipe.getKeys(False)
     for RecipeKey in RecipeKeys:
+        RecipePermission = WokRecipe.getString(RecipeKey + ".Permission")
+        if RecipePermission and not EventUtils.getPermission(ClickPlayer, RecipePermission):
+            continue
         RecipeHeat = WokRecipe.getInt(RecipeKey + ".HeatControl", 0)
         if RecipeHeat != int(HeatLevel) and int(HeatLevel) != 0: continue
         RecipeItemList = WokRecipe.getStringList(RecipeKey + ".Item")
@@ -1774,11 +1839,12 @@ def GrinderInteraction(Event, EventType):
     ClickPlayer = EventUtils.getPlayer(Event, EventType)
     ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
     MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
-    if not ClickBlock or not MainHandItem or MainHandItem.getType() == Material.AIR:
-        return False
-    if not EventUtils.isLeftClick(Event, EventType) or not EventUtils.isSneaking(ClickPlayer, "Grinder"):
-        return False
-    if not EventUtils.isTargetBlock(ClickBlock, "Grinder"):
+    if not ClickBlock or not MainHandItem or MainHandItem.getType() == Material.AIR: return False
+    if not EventUtils.isLeftClick(Event, EventType) or not EventUtils.isSneaking(ClickPlayer, "Grinder"): return False
+    if not EventUtils.isTargetBlock(ClickBlock, "Grinder"): return False
+    if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.grinder.interaction"):
+        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+        EventUtils.setCancelled(Event, EventType, True)
         return False
     FileKey = GetFileKey(ClickBlock)
     if Data.contains("Grinder." + FileKey):
@@ -1790,6 +1856,11 @@ def GrinderInteraction(Event, EventType):
     if ItemIdentifier not in RecipeKeys:
         MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.NoGrinderReplace"))
         EventUtils.setCancelled(Event, EventType, True)
+        return False
+    RecipePermission = GrinderRecipe.getString(ItemIdentifier + ".Permission")
+    if RecipePermission and not EventUtils.getPermission(ClickPlayer, RecipePermission):
+        EventUtils.setCancelled(Event, EventType, True)
+        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
         return False
     RemoveItemToPlayer(ClickPlayer, MainHandItem)
     GrindTime = GrinderRecipe.getInt(ItemIdentifier + ".GrindingTime", 5)
@@ -2115,7 +2186,7 @@ ps.command.registerCommand(CommandExecute, TabCommandExecute, "jiuwukitchen", ["
 
 # 脚本启动检查
 if ps.script.isScriptRunning("JiuWu's_Kitchen.py"):
-    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"),{"Version": "v1.2.2", "Prefix": Prefix})
+    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"),{"Version": "v1.2.3", "Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console,
                                  u"{Prefix} <red>Discord: <gray>https://discord.gg/jyhbPUkG",{"Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console,u"{Prefix} <red>QQ群: <gray>299852340",{"Prefix": Prefix})
