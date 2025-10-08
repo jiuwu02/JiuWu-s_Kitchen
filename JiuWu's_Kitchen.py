@@ -248,7 +248,8 @@ class ConfigManager:
             "Messages.ActionBar.OnRunGrinder": u"<red>研磨机正在工作中! 请稍后再试! ",
             "Messages.ActionBar.SuccessGrinder": u"<green>研磨成功!",
             "Messages.PluginLoad.CraftEngine": u"{Prefix} <green>检测到 CraftEngine 插件",
-            "Messages.PluginLoad.MMOItems": u"{Prefix} <green>检测到 MMOItems 插件"
+            "Messages.PluginLoad.MMOItems": u"{Prefix} <green>检测到 MMOItems 插件",
+            "Messages.PluginLoad.PlaceholderAPI": u"{Prefix} <green>检测到 PlaceholderAPI 插件"
         }
 
         for key, value in messages.items(): ConfigManager._setConfigValue(configFile, key, value)
@@ -682,12 +683,13 @@ Console = Bukkit.getServer().getConsoleSender()
 
 CraftEngineAvailable = False
 MMOItemsAvailable = False
+PlaceholderAPIAvailable = False
 
 def ServerPluginLoad():
     """
     在插件加载时检查CraftEngine和MMOItems插件是否可用，并注册相关事件监听器
     """
-    global CraftEngineAvailable, MMOItemsAvailable
+    global CraftEngineAvailable, MMOItemsAvailable, PlaceholderAPIAvailable
     CraftEngineAvailable = Bukkit.getPluginManager().isPluginEnabled("CraftEngine")
     if CraftEngineAvailable:
         MiniMessageUtils.sendMessage(Console,Config.getString("Messages.PluginLoad.CraftEngine"), {"Prefix": Prefix})
@@ -700,6 +702,9 @@ def ServerPluginLoad():
     MMOItemsAvailable = Bukkit.getPluginManager().isPluginEnabled("MMOItems")
     if MMOItemsAvailable:
         MiniMessageUtils.sendMessage(Console,Config.getString("Messages.PluginLoad.MMOItems"), {"Prefix": Prefix})
+    PlaceholderAPIAvailable = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")
+    if PlaceholderAPIAvailable:
+        MiniMessageUtils.sendMessage(Console, Config.getString("Messages.PluginLoad.PlaceholderAPI"), {"Prefix": Prefix})
 
 # 事件监听器
 def InteractionVanillaBlock(Event): return EventHandler.handleInteraction(Event, "vanilla")
@@ -765,6 +770,8 @@ class EventUtils:
         """
         if Player is None:
             return False
+        if Player.isOp():
+            return True
         return Player.hasPermission(PermissionNode)
 
     @staticmethod
@@ -974,6 +981,104 @@ class ToolUtils:
     CRAFTENGINE = "craftengine"
     MMOITEMS = "mmoitems"
     MINECRAFT = "minecraft"
+
+    @staticmethod
+    def parseAndExecuteCommand(CommandStr, ExecutePlayer=None, Chance=100, ExecuteCount=1):
+        """解析并执行命令奖励
+
+        参数:
+            CommandStr: 命令字符串，格式为 "command <命令内容> a:<执行次数> c:<概率>"
+            ExecutePlayer: 可选的玩家对象，用于解析占位符
+            Chance: 默认概率 (如果命令字符串中未指定)
+            ExecuteCount: 默认执行次数 (如果命令字符串中未指定)
+
+        返回:
+            bool: 是否成功执行了命令
+        """
+        try:
+            if not CommandStr.startswith("command "):
+                return False
+            CommandContent = CommandStr[8:]
+            Parts = CommandContent.split(" ")
+            ActualCommand = []
+            ActualChance = Chance
+            ActualExecuteCount = ExecuteCount
+            for Part in Parts:
+                if Part.startswith("a:"):
+                    try:
+                        ActualExecuteCount = int(Part[2:])
+                    except ValueError:
+                        pass
+                elif Part.startswith("c:"):
+                    try:
+                        ActualChance = int(Part[2:])
+                    except ValueError:
+                        pass
+                else:
+                    ActualCommand.append(Part)
+            if random.randint(1, 100) > ActualChance:
+                return False
+            FinalCommand = " ".join(ActualCommand)
+            if ExecutePlayer:
+                FinalCommand = FinalCommand.replace("%player%", ExecutePlayer.getName())
+            if PlaceholderAPIAvailable and ExecutePlayer:
+                try:
+                    from me.clip.placeholderapi.PlaceholderAPI import setPlaceholders  # type: ignore
+                    FinalCommand = setPlaceholders(ExecutePlayer, FinalCommand)
+                except Exception as e:
+                    MiniMessageUtils.sendMessage(Console, u"PAPI占位符解析错误: " + str(e))
+            for i in range(ActualExecuteCount):
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), FinalCommand)
+            return True
+        except Exception as e:
+            MiniMessageUtils.sendMessage(Console, u"命令解析错误: " + str(e))
+            return False
+
+    @staticmethod
+    def processReward(RewardStr, RewardPlayer=None):
+        """处理奖励字符串，可以是物品或命令
+
+        参数:
+            RewardStr: 奖励字符串
+            RewardPlayer: 可选的玩家对象，用于命令奖励的占位符解析
+
+        返回:
+            bool: 是否成功处理了奖励
+        """
+        if RewardStr.startswith("command "):
+            return ToolUtils.parseAndExecuteCommand(RewardStr, RewardPlayer)
+        try:
+            parts = RewardStr.split(" ")
+            if len(parts) < 4:
+                return False
+            ItemNamespace = parts[0]
+            ItemId = parts[1]
+            AmountRange = parts[2]
+            Chance = int(parts[3])
+            if random.randint(1, 100) > Chance:
+                return False
+            if "-" in AmountRange:
+                MinAmount, MaxAmount = map(int, AmountRange.split("-"))
+                Amount = random.randint(MinAmount, MaxAmount)
+            else:
+                Amount = int(AmountRange)
+            ItemKey = "{} {}".format(ItemNamespace, ItemId)
+            ResultItemStack = ToolUtils.createItemStack(ItemKey, Amount)
+            if not ResultItemStack:
+                MiniMessageUtils.sendMessage(Console, Config.getString("Messages.InvalidMaterial"),
+                                    {"Prefix": Prefix, "Material": ItemKey})
+                return False
+            if Config.getBoolean("Setting.ChoppingBoard.Drop"):
+                DropLocation = RewardPlayer.getLocation() if RewardPlayer else None
+                if DropLocation:
+                    ItemEntity = DropLocation.getWorld().dropItem(DropLocation, ResultItemStack)
+                    ItemEntity.setPickupDelay(20)
+            elif RewardPlayer:
+                GiveItemToPlayer(RewardPlayer, ResultItemStack)
+            return True
+        except Exception as e:
+            MiniMessageUtils.sendMessage(Console, u"物品奖励解析错误: " + str(e))
+            return False
 
     @staticmethod
     def isBlockMaterialType(Item):
@@ -1293,10 +1398,6 @@ def ChoppingBoardInteraction(Event, EventType):
     ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
     MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
     if not ClickBlock: return False
-    if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.choppingboard.interaction"):
-        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
-        EventUtils.setCancelled(Event, EventType, True)
-        return False
     if not EventUtils.isMainHand(Event, EventType): return False
     if EventUtils.isRightClick(Event, EventType):
         Displaylocation = CalculateDisplayLocation(ClickBlock, "ChoppingBoard", MainHandItem)
@@ -1309,11 +1410,15 @@ def ChoppingBoardInteraction(Event, EventType):
     if not EventUtils.isSneaking(ClickPlayer, "ChoppingBoard"): return False
     if Config.getBoolean("Setting.ChoppingBoard.SpaceRestriction"):
         if ClickBlock.getRelative(BlockFace.UP).getType() != Material.AIR: return False
+    if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.choppingboard.interaction"):
+        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
+        EventUtils.setCancelled(Event, EventType, True)
+        return False
     FileKey = GetFileKey(ClickBlock)
     hasExistingDisplay = Data.contains("ChoppingBoard." + FileKey)
     if MainHandItem and MainHandItem.getType() != Material.AIR:
         if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.choppingboard.cut"):
-            MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+            MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
             EventUtils.setCancelled(Event, EventType, True)
             return
         if hasExistingDisplay:
@@ -1329,7 +1434,7 @@ def ChoppingBoardInteraction(Event, EventType):
                 ReplacePermission = ChoppingBoardRecipe.getString(ItemMaterial + ".Permission")
                 if ReplacePermission and not EventUtils.getPermission(ClickPlayer, ReplacePermission):
                     EventUtils.setCancelled(Event, EventType, True)
-                    MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+                    MiniMessageUtils.sendMessage(ClickPlayer,Config.getString("Messages.NoPermission"),{"Prefix": Prefix})
                     return False
                 ResultMaterials = ChoppingBoardRecipe.getStringList(ItemMaterial + ".Output")
                 if not RequiredCuts or RequiredCuts == 0:
@@ -1368,33 +1473,8 @@ def ChoppingBoardInteraction(Event, EventType):
                 if CurrentCuts >= RequiredCuts:
                     if ResultMaterials and len(ResultMaterials) > 0:
                         for ResultMaterial in ResultMaterials:
-                            Parts = ResultMaterial.split(" ")
-                            if len(Parts) < 4:
+                            if ToolUtils.processReward(ResultMaterial, ClickPlayer):
                                 continue
-                            ItemNamespace = Parts[0]
-                            ItemId = Parts[1]
-                            AmountRange = Parts[2]
-                            Chance = int(Parts[3])
-                            if random.randint(1, 100) > Chance:
-                                continue
-                            if "-" in AmountRange:
-                                MinAmount, MaxAmount = map(int, AmountRange.split("-"))
-                                Amount = random.randint(MinAmount, MaxAmount)
-                            else:
-                                Amount = int(AmountRange)
-                            ItemKey = "{} {}".format(ItemNamespace, ItemId)
-                            ResultItemStack = ToolUtils.createItemStack(ItemKey, Amount)
-                            if not ResultItemStack:
-                                MiniMessageUtils.sendMessage(Console, Config.getString("Messages.InvalidMaterial"),
-                                    {"Prefix": Prefix, "Material": ItemKey})
-                                continue
-                            DropLocation = Location(BlockLocation.getWorld(), BlockLocation.getX() + 0.5,
-                                BlockLocation.getY() + 1.0, BlockLocation.getZ() + 0.5)
-                            if Config.getBoolean("Setting.ChoppingBoard.Drop"):
-                                ItemEntity = BlockLocation.getWorld().dropItem(DropLocation, ResultItemStack)
-                                ItemEntity.setPickupDelay(20)
-                            else:
-                                GiveItemToPlayer(ClickPlayer, ResultItemStack)
                     ItemDisplayEntity.remove()
                     Data.set("ChoppingBoard." + FileKey, None)
                     Data.save()
@@ -1447,10 +1527,6 @@ def WokInteraction(Event, EventType):
     ClickPlayer = EventUtils.getPlayer(Event, EventType)
     ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
     if not ClickBlock: return False
-    if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.wok.interaction"):
-        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
-        EventUtils.setCancelled(Event, EventType, True)
-        return
     if not EventUtils.isMainHand(Event, EventType): return False
     if not EventUtils.isTargetBlock(ClickBlock, "Wok"): return False
     FileKey = GetFileKey(ClickBlock)
@@ -1469,6 +1545,10 @@ def WokInteraction(Event, EventType):
         except:  pass
     if BottomBlockType in HeatControl: HeatLevel = Config.getInt("Setting.Wok.HeatControl." + BottomBlockType)
     if not EventUtils.isSneaking(ClickPlayer, "Wok"): return False
+    if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.wok.interaction"):
+        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
+        EventUtils.setCancelled(Event, EventType, True)
+        return
     if EventUtils.isRightClick(Event, EventType):
         MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
         if not ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula"):  return False
@@ -1495,7 +1575,7 @@ def WokInteraction(Event, EventType):
             return True
     elif EventUtils.isLeftClick(Event, EventType):
         if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.wok.stirfry"):
-            MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+            MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
             EventUtils.setCancelled(Event, EventType, True)
             return
         hasExistingDisplay = Data.get("Wok")
@@ -1547,7 +1627,7 @@ def WokInteraction(Event, EventType):
         NeedBowl = Config.getBoolean("Setting.Wok.NeedBowl")
         if NeedBowl and MainHandItem and MainHandItem.getType() == Material.BOWL:
             if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.wok.serveout"):
-                MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+                MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
                 EventUtils.setCancelled(Event, EventType, True)
                 return
             GetWokOutput(Data, FileKey, ClickPlayer, ClickBlock, HeatLevel)
@@ -1842,10 +1922,6 @@ def GrinderInteraction(Event, EventType):
     if not ClickBlock or not MainHandItem or MainHandItem.getType() == Material.AIR: return False
     if not EventUtils.isLeftClick(Event, EventType) or not EventUtils.isSneaking(ClickPlayer, "Grinder"): return False
     if not EventUtils.isTargetBlock(ClickBlock, "Grinder"): return False
-    if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.grinder.interaction"):
-        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
-        EventUtils.setCancelled(Event, EventType, True)
-        return False
     FileKey = GetFileKey(ClickBlock)
     if Data.contains("Grinder." + FileKey):
         MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.OnRunGrinder"))
@@ -1858,9 +1934,13 @@ def GrinderInteraction(Event, EventType):
         EventUtils.setCancelled(Event, EventType, True)
         return False
     RecipePermission = GrinderRecipe.getString(ItemIdentifier + ".Permission")
+    if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.grinder.interaction"):
+        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
+        EventUtils.setCancelled(Event, EventType, True)
+        return False
     if RecipePermission and not EventUtils.getPermission(ClickPlayer, RecipePermission):
         EventUtils.setCancelled(Event, EventType, True)
-        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"))
+        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
         return False
     RemoveItemToPlayer(ClickPlayer, MainHandItem)
     GrindTime = GrinderRecipe.getInt(ItemIdentifier + ".GrindingTime", 5)
@@ -1949,31 +2029,8 @@ def CheckSingleGrinder(FileKey):
             Data.save()
             return
         for OutputItem in OutputItems:
-            Parts = OutputItem.split(" ")
-            if len(Parts) < 3:
+            if ToolUtils.processReward(OutputItem, Player):
                 continue
-            Namespace = Parts[0]
-            ItemName = Parts[1]
-            AmountInfo = Parts[2]
-            Chance = int(Parts[3]) if len(Parts) > 3 else 100
-            if random.randint(1, 100) > Chance:
-                continue
-            if "-" in AmountInfo:
-                MinAmount, MaxAmount = map(int, AmountInfo.split("-"))
-                Amount = random.randint(MinAmount, MaxAmount)
-            else:
-                Amount = int(AmountInfo)
-            ItemKey = "{} {}".format(Namespace, ItemName)
-            ResultItem = ToolUtils.createItemStack(ItemKey, Amount)
-            if ResultItem:
-                if Config.getBoolean("Setting.Grinder.Drop"):
-                    MiniMessageUtils.sendActionBar(Player, Config.getString("Messages.ActionBar.SuccessGrinder"))
-                    DropLocation = BlockLocation.add(0.5, 1.0, 0.5)
-                    ItemEntity = World.dropItem(DropLocation, ResultItem)
-                    ItemEntity.setPickupDelay(20)
-                elif Player and Player.isOnline():
-                    MiniMessageUtils.sendActionBar(Player, Config.getString("Messages.ActionBar.SuccessGrinder"))
-                    GiveItemToPlayer(Player, ResultItem)
         Data.set("Grinder." + FileKey, None)
         Data.save()
     else:
@@ -2118,7 +2175,7 @@ def CommandExecute(sender, label, args):
     if args[0] == "reload":
         if isinstance(sender, Player):
             if not sender.hasPermission("jiuwukitchen.command.reload"):
-                MiniMessageUtils.sendMessage(sender, Config.getString("Messages.NoPermission"),{"Prefix": Prefix})
+                MiniMessageUtils.sendMessage(sender, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
                 return False
         ReloadPlugin(sender)
         MiniMessageUtils.sendMessage(sender, Config.getString("Messages.Reload.LoadPlugin"), {"Prefix": Prefix})
@@ -2186,7 +2243,7 @@ ps.command.registerCommand(CommandExecute, TabCommandExecute, "jiuwukitchen", ["
 
 # 脚本启动检查
 if ps.script.isScriptRunning("JiuWu's_Kitchen.py"):
-    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"),{"Version": "v1.2.3", "Prefix": Prefix})
+    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"),{"Version": "v1.2.5", "Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console,
                                  u"{Prefix} <red>Discord: <gray>https://discord.gg/jyhbPUkG",{"Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console,u"{Prefix} <red>QQ群: <gray>299852340",{"Prefix": Prefix})
