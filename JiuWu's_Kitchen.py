@@ -83,7 +83,7 @@ class ConfigManager:
             u"启用时: 砧板上方有方块时无法使用",
             u"禁用时: 砧板上方允许存在方块"])
         ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.Delay", 1.0, [
-            u"砧砧板交互的最小间隔时间 (秒)",
+            u"砧板交互的最小间隔时间 (秒)",
             u"防止玩家连续快速交互",
             u"设置为0表示无延迟"])
         ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.KitchenKnife.Custom", False, [
@@ -98,7 +98,7 @@ class ConfigManager:
             u"启用时: 切菜时有概率切伤手指"])
         ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Chance", 10)
         ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Value", 2)
-        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.KitchenKnife.Material", ["IRON_AXE"])
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.KitchenKnife.Material", ["minecraft IRON_AXE"])
         ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.X", 0.5)
         ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.Y", 1.02)
         ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.Z", 0.5)
@@ -176,7 +176,7 @@ class ConfigManager:
             u"禁用时: 使用原版物品",
             u"CraftEngine物品: craftengine <Key>:<ID>",
             u"MMOItems物品: mmoitems <Type>:<ID>"])
-        ConfigManager.setConfigValue(configFile, "Setting.Wok.Spatula.Material", ["IRON_SHOVEL"])
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Spatula.Material", ["minecraft IRON_SHOVEL"])
         ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.X", 0.5)
         ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.Y", 1.02)
         ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.Z", 0.5)
@@ -790,6 +790,7 @@ def ServerPluginLoad():
         )
         ps.listener.registerListener(InteractionCraftEngineBlock, CustomBlockInteractEvent)
         ps.listener.registerListener(BreakCraftEngineBlock, CustomBlockBreakEvent)
+        ps.listener.registerListener(SteamerBreak, CustomBlockBreakEvent)
     MMOItemsAvailable = Bukkit.getPluginManager().isPluginEnabled("MMOItems")
     if MMOItemsAvailable:
         MiniMessageUtils.sendMessage(Console,Config.getString("Messages.PluginLoad.MMOItems"), {"Prefix": Prefix})
@@ -835,6 +836,8 @@ class EventHandler:
             if WokBreak(Event, EventType):  return True
             # 处理研磨机方块
             if GrinderBreak(Event, EventType):  return True
+            # 处理蒸锅方块和热源方块
+            if SteamerBreak(Event, EventType):  return True
                 
             return False
         except Exception as e:
@@ -1018,7 +1021,7 @@ class EventUtils:
 
         参数:
             Block: 方块对象
-            Target: 目标类型 (vanilla或craftengine)
+            Target: 目标类型
 
         返回:
             bool: 是否为目标方块
@@ -1031,12 +1034,24 @@ class EventUtils:
                     try:
                         from net.momirealms.craftengine.bukkit.api import CraftEngineBlocks  # type: ignore
                         ClickBlockState = CraftEngineBlocks.getCustomBlockState(Block)
-                        if ClickBlockState is not None and str(ClickBlockState) == ID: return True
-                    except: return False
+                        if ClickBlockState is not None and str(ClickBlockState) == ID: 
+                            return True
+                    except: 
+                        return False
             return False
         else:
-            try: return Block.getType() == Material.valueOf(MaterialSetting)
-            except: return False
+            if " " in MaterialSetting:
+                namespace, materialName = MaterialSetting.split(" ", 1)
+                if namespace == "minecraft":
+                    try:
+                        return Block.getType() == Material.valueOf(materialName.upper())
+                    except: 
+                        return False
+            else:
+                try:
+                    return Block.getType() == Material.valueOf(MaterialSetting.upper())
+                except: 
+                    return False
 
     @staticmethod
     def setCancelled(Event, EventType, Cancelled):
@@ -1081,6 +1096,7 @@ class ToolUtils:
     # 类常量
     CRAFTENGINE = "craftengine"
     MMOITEMS = "mmoitems"
+    MINECRAFT = "minecraft"
 
     @staticmethod
     def parseAndExecuteCommand(CommandStr, ExecutePlayer=None, Chance=100, ExecuteCount=1):
@@ -1136,22 +1152,14 @@ class ToolUtils:
 
     @staticmethod
     def processReward(RewardStr, RewardPlayer=None):
-        """处理奖励字符串，可以是物品或命令
-
-        参数:
-            RewardStr: 奖励字符串
-            RewardPlayer: 可选的玩家对象，用于命令奖励的占位符解析
-
-        返回:
-            bool: 是否成功处理了奖励
-        """
+        """处理奖励字符串，可以是物品或命令"""
         if RewardStr.startswith("command "):
             return ToolUtils.parseAndExecuteCommand(RewardStr, RewardPlayer)
         try:
             parts = RewardStr.split(" ")
             if len(parts) < 4:
                 return False
-            ItemNamespace = parts[0]
+            ItemNamespace = parts[0]  # 使用minecraft命名空间
             ItemId = parts[1]
             AmountRange = parts[2]
             Chance = int(parts[3])
@@ -1162,7 +1170,7 @@ class ToolUtils:
                 Amount = random.randint(MinAmount, MaxAmount)
             else:
                 Amount = int(AmountRange)
-            ItemKey = "{} {}".format(ItemNamespace, ItemId)
+            ItemKey = "{} {}".format(ItemNamespace, ItemId)  # 使用空格分隔的格式
             ResultItemStack = ToolUtils.createItemStack(ItemKey, Amount)
             if not ResultItemStack:
                 MiniMessageUtils.sendMessage(Console, Config.getString("Messages.InvalidMaterial"),
@@ -1197,39 +1205,29 @@ class ToolUtils:
 
     @staticmethod
     def isToolItem(Item, Config, Type, Tool, material=None):
-        """判断物品是否为指定的工具类型
-
-        参数:
-            Item: 物品对象
-            Config: 配置对象
-            Type: 工具类型
-            Tool: 工具名称
-            material: 可选的特定材料
-
-        返回:
-            bool: 是否为指定工具
-        """
-        if not Item or Item.getType() == Material.AIR:  return False
-        CustomSetting = Config.getBoolean("Setting." + Type + "." + Tool + ".Custom")
+        """判断物品是否为指定的工具类型"""
+        if not Item or Item.getType() == Material.AIR:
+            return False
         if material is not None:
             materialToCheck = material
         else:
             materials = ToolUtils.getToolMaterials(Config, Type, Tool)
             materialToCheck = materials[0] if materials else None
-        if materialToCheck is None: return False
+        if materialToCheck is None:
+            return False
+        itemIdentifier = ToolUtils.getItemIdentifier(Item)
+        CustomSetting = Config.getBoolean("Setting." + Type + "." + Tool + ".Custom")
         if CustomSetting:
-            if ":" in materialToCheck:
-                Identifier, ID = materialToCheck.split(":", 1)
-                if Identifier == ToolUtils.CRAFTENGINE and CraftEngineAvailable:
-                    return ToolUtils.isCraftEngineItem(Item, ID)
-                elif Identifier == ToolUtils.MMOITEMS and MMOItemsAvailable:
-                    return ToolUtils.isMMOItemsItem(Item, ID)
+            return itemIdentifier == materialToCheck
         else:
-            try: 
-                return Item.getType() == Material.valueOf(materialToCheck.upper())
-            except: 
-                pass
-        return False
+            try:
+                if ":" in materialToCheck:
+                    materialName = materialToCheck.split(":")[1]
+                else:
+                    materialName = materialToCheck
+                return Item.getType() == Material.valueOf(materialName.upper())
+            except:
+                return False
     
     @staticmethod
     def getToolMaterials(Config, Type, Tool):
@@ -1292,18 +1290,25 @@ class ToolUtils:
             Item: 物品对象
 
         返回:
-            str: 标识符字符串 (格式: "类型 标识符")
+            str: 标识符字符串
         """
+        if not Item or Item.getType() == Material.AIR:
+            return "AIR"
+        
         # 检查CraftEngine物品
         if CraftEngineAvailable:
             craftEngineId = ToolUtils.getCraftEngineItemId(Item)
-            if craftEngineId: return ToolUtils.CRAFTENGINE + " " + str(craftEngineId)
+            if craftEngineId: 
+                return ToolUtils.CRAFTENGINE + " " + str(craftEngineId)
+        
         # 检查MMOItems物品
         if MMOItemsAvailable:
             mmoItemsId = ToolUtils.getMMOItemsItemId(Item)
-            if mmoItemsId: return ToolUtils.MMOITEMS + " " + mmoItemsId
+            if mmoItemsId: 
+                return ToolUtils.MMOITEMS + " " + mmoItemsId
+        
         # 默认返回原版物品标识
-        return Item.getType().name()
+        return ToolUtils.MINECRAFT + " " + Item.getType().name()
 
     @staticmethod
     def getCraftEngineItemId(Item):
@@ -1341,38 +1346,27 @@ class ToolUtils:
 
     @staticmethod
     def createItemStack(ItemKey, Amount=1):
-        """创建物品栈
-
-        参数:
-            ItemKey: 物品键
-            Amount: 数量
-
-        返回:
-            ItemStack: 物品栈
-        """
+        """创建物品栈"""
         if not ItemKey: return None
-        if ":" in ItemKey:
-            Parts = ItemKey.split(":", 1)
-            ItemType = Parts[0]
-            ItemId = Parts[1]
-            if ItemType == ToolUtils.CRAFTENGINE and CraftEngineAvailable:
-                return ToolUtils.createCraftEngineItem(ItemId, Amount)
-            elif ItemType == ToolUtils.MMOITEMS and MMOItemsAvailable:
-                return ToolUtils.createMMOItemsItem(ItemId, Amount)
-            else:
-                # 未知插件类型，尝试作为原版物品
-                try:
-                    Item = Material.valueOf(ItemKey.replace(":", "_").upper())
-                    return ItemStack(Item, Amount)
-                except:
-                    return None
+        Parts = ItemKey.split(" ")
+        if len(Parts) < 1: return None
+        ItemType = Parts[0]
+        if ItemType == ToolUtils.MINECRAFT: 
+            return ToolUtils.createMinecraftItem(Parts, Amount)
+        elif ItemType == ToolUtils.CRAFTENGINE and CraftEngineAvailable:
+            return ToolUtils.createCraftEngineItem(Parts, Amount)
+        elif ItemType == ToolUtils.MMOITEMS and MMOItemsAvailable: 
+            return ToolUtils.createMMOItemsItem(Parts, Amount)
         else:
-            # 原版物品: 直接使用材料名称
             try:
-                Item = Material.valueOf(ItemKey.upper())
+                Item = Material.valueOf(ItemType.upper())
                 return ItemStack(Item, Amount)
-            except:
-                return None
+            except: 
+                try:
+                    minecraftKey = ToolUtils.MINECRAFT + " " + ItemType
+                    return ToolUtils.createMinecraftItem([ToolUtils.MINECRAFT, ItemType], Amount)
+                except: 
+                    return None
 
     @staticmethod
     def createMinecraftItem(Parts, Amount):
@@ -1392,7 +1386,7 @@ class ToolUtils:
         except: return None
 
     @staticmethod
-    def createCraftEngineItem(ItemId, Amount):
+    def createCraftEngineItem(Parts, Amount):
         """创建CraftEngine物品
 
         参数:
@@ -1405,18 +1399,18 @@ class ToolUtils:
         try:
             from net.momirealms.craftengine.bukkit.api import CraftEngineItems  # type: ignore
             from net.momirealms.craftengine.core.util import Key  # type: ignore
-            
-            KeyParts = ItemId.split(":")
-            if len(KeyParts) >= 2:
-                CraftEngineItem = CraftEngineItems.byId(Key(KeyParts[0], KeyParts[1])).buildItemStack()
-                CraftEngineItem.setAmount(Amount)
-                return CraftEngineItem
-        except Exception:
-            pass
+            if len(Parts) > 1:
+                KeyParts = Parts[1].split(":")
+                if len(KeyParts) >= 2:
+                    CraftEngineItem = CraftEngineItems.byId(Key(KeyParts[0], KeyParts[1])).buildItemStack()
+                    CraftEngineItem.setAmount(Amount)
+                    return CraftEngineItem
+        except Exception: 
+            return None
         return None
 
     @staticmethod
-    def createMMOItemsItem(ItemId, Amount):
+    def createMMOItemsItem(Parts, Amount):
         """创建MMOItems物品
 
         参数:
@@ -1428,15 +1422,16 @@ class ToolUtils:
         """
         try:
             from net.Indyuce.mmoitems import MMOItems  # type: ignore
-            IdParts = ItemId.split(":")
-            if len(IdParts) >= 2:
-                MMOItemsItem = MMOItems.plugin.getMMOItem(
-                    MMOItems.plugin.getTypes().get(IdParts[0]), IdParts[1]
-                ).newBuilder().build()
-                MMOItemsItem.setAmount(Amount)
-                return MMOItemsItem
-        except Exception:
-            pass
+            if len(Parts) > 1:
+                IdParts = Parts[1].split(":")
+                if len(IdParts) >= 2:
+                    MMOItemsItem = MMOItems.plugin.getMMOItem(
+                        MMOItems.plugin.getTypes().get(IdParts[0]), IdParts[1]
+                        ).newBuilder().build()
+                    MMOItemsItem.setAmount(Amount)
+                    return MMOItemsItem
+        except Exception: 
+            return None
         return None
 
     @staticmethod
@@ -1467,7 +1462,7 @@ class ToolUtils:
         return Component.translatable(Item.translationKey())
 
 def ChoppingBoardBreak(Event, EventType):
-    """砧砧板破坏事件处理"""
+    """砧板破坏事件处理"""
     BreakBlock = EventUtils.getBreakBlock(Event, EventType)
     if not EventUtils.isTargetBlock(BreakBlock, "ChoppingBoard"): return False
     FileKey = GetFileKey(BreakBlock)
@@ -1525,8 +1520,104 @@ def GrinderBreak(Event, EventType):
     Data.save()
     return True
 
+def SteamerBreak(Event, EventType):
+    """蒸锅破坏事件处理"""
+    BreakBlock = EventUtils.getBreakBlock(Event, EventType)
+    if EventUtils.isTargetBlock(BreakBlock, "Steamer"):
+        return HandleSteamerBlockBreak(BreakBlock)
+    elif isHeatSourceBlock(BreakBlock):
+        return HandleHeatSourceBlockBreak(BreakBlock)
+    return False
+
+def HandleSteamerBlockBreak(SteamerBlock):
+    """处理蒸锅方块的破坏"""
+    try:
+        FileKey = GetFileKey(SteamerBlock)
+        SteamerDataPath = "Steamer." + FileKey
+        if not Data.contains(SteamerDataPath):
+            return False
+        ExtinguishHeatSource(FileKey)
+        DropSteamerItems(SteamerBlock, FileKey)
+        Data.set(SteamerDataPath, None)
+        Data.save()
+        CleanupSteamerTempData(FileKey)
+        return True
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+        return False
+
+def HandleHeatSourceBlockBreak(HeatSourceBlock):
+    """处理热源方块的破坏"""
+    try:
+        TopBlock = HeatSourceBlock.getRelative(BlockFace.UP)
+        if not EventUtils.isTargetBlock(TopBlock, "Steamer"):
+            return False
+        return HandleSteamerBlockBreak(TopBlock)
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+        return False
+
+def DropSteamerItems(SteamerBlock, FileKey):
+    """掉落蒸锅中的所有物品"""
+    try:
+        SlotsPath = "Steamer." + FileKey + ".Slots"
+        CookingProgressPath = "Steamer." + FileKey + ".CookingProgress"
+        if not Data.contains(SlotsPath):
+            return
+        SlotItems = Data.getStringList(SlotsPath)
+        CookingProgress = []
+        if Data.contains(CookingProgressPath):
+            CookingProgress = Data.getIntegerList(CookingProgressPath)
+        if len(CookingProgress) < len(SlotItems):
+            CookingProgress.extend([0] * (len(SlotItems) - len(CookingProgress)))
+        DropLocation = SteamerBlock.getLocation().add(0.5, 1.0, 0.5)
+        for i, itemIdentifier in enumerate(SlotItems):
+            if itemIdentifier != "AIR":
+                try:
+                    CurrentProgress = CookingProgress[i] if i < len(CookingProgress) else 0
+                    if SteamerRecipe.contains(itemIdentifier):
+                        requiredSteam = SteamerRecipe.getInt(itemIdentifier + ".Steam", 0)
+                        outputItem = SteamerRecipe.getString(itemIdentifier + ".Output")
+                        if outputItem and CurrentProgress >= requiredSteam:
+                            itemToDrop = outputItem
+                        else:
+                            itemToDrop = itemIdentifier
+                    else:
+                        for recipeKey in SteamerRecipe.getKeys(False):
+                            outputItem = SteamerRecipe.getString(recipeKey + ".Output")
+                            if outputItem and outputItem == itemIdentifier:
+                                itemToDrop = itemIdentifier
+                                break
+                        else:
+                            itemToDrop = itemIdentifier
+                    itemStack = ToolUtils.createItemStack(itemToDrop, 1)
+                    if itemStack:
+                        itemEntity = SteamerBlock.getWorld().dropItem(DropLocation, itemStack)
+                        itemEntity.setPickupDelay(20)
+                except Exception as e:
+                    MiniMessageUtils.sendMessage(Console, str(e))
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+
+def CleanupSteamerTempData(FileKey):
+    """清理蒸锅的临时数据"""
+    try:
+        players_to_remove = []
+        for player_uuid, steamer_data in SteamerTempData.items():
+            if steamer_data.get("steamerKey") == FileKey:
+                players_to_remove.append(player_uuid)
+        for player_uuid in players_to_remove:
+            if player_uuid in SteamerTempData:
+                del SteamerTempData[player_uuid]
+            if player_uuid in SteamerInventories:
+                del SteamerInventories[player_uuid]
+        if FileKey in SteamerProcessingData:
+            del SteamerProcessingData[FileKey]
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+
 def ChoppingBoardInteraction(Event, EventType):
-    """砧砧板交互事件处理"""
+    """砧板交互事件处理"""
     ClickPlayer = EventUtils.getPlayer(Event, EventType)
     ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
     if not ClickBlock: return False
@@ -1679,6 +1770,7 @@ def WokInteraction(Event, EventType):
     ClickPlayer = EventUtils.getPlayer(Event, EventType)
     ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
     if not ClickBlock: return False
+    ItemList = []
     if not EventUtils.isMainHand(Event, EventType): return False
     if not EventUtils.isTargetBlock(ClickBlock, "Wok"): return False
     FileKey = GetFileKey(ClickBlock)
@@ -1695,12 +1787,18 @@ def WokInteraction(Event, EventType):
                 if CraftEngineKey in HeatControl:
                     HeatLevel = Config.getInt("Setting.Wok.HeatControl." + CraftEngineKey)
         except:  pass
-    if BottomBlockType in HeatControl: HeatLevel = Config.getInt("Setting.Wok.HeatControl." + BottomBlockType)
+    if BottomBlockType in HeatControl: 
+        HeatLevel = Config.getInt("Setting.Wok.HeatControl." + BottomBlockType)
     if not EventUtils.isSneaking(ClickPlayer, "Wok"): return False
     if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.wok.interaction"):
         MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
         EventUtils.setCancelled(Event, EventType, True)
-        return
+        return False
+    hasExistingDisplay = False
+    wokData = Data.get("Wok")
+    if wokData and wokData.contains(FileKey):
+        hasExistingDisplay = True
+        ItemList = Data.getStringList("Wok." + FileKey + ".Items")
     if EventUtils.isRightClick(Event, EventType):
         MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
         ToolMaterials = ToolUtils.getToolMaterials(Config, "Wok", "Spatula")
@@ -1709,21 +1807,19 @@ def WokInteraction(Event, EventType):
             if ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula", material):
                 isToolValid = True
                 break
-        if not isToolValid: return False
-        if not ToolUtils.isToolItem(MainHandItem, Config, "Wok", "Spatula"): return False
-        hasExistingDisplay = Data.get("Wok")
-        if hasExistingDisplay:  hasExistingDisplay = hasExistingDisplay.contains(FileKey)
-        else:  hasExistingDisplay = False
+        if not isToolValid: 
+            return False
         if hasExistingDisplay:
-            ItemList = Data.getStringList("Wok." + FileKey + ".Items")
             TotalCount = Data.getInt("Wok." + FileKey + ".Count", 0)
             MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokTop"))
             for Item in ItemList:
                 Parts = Item.split(" ")
-                PluginName, ItemName, Amount, Count = Parts
-                ItemStack = ToolUtils.createItemStack(Item)
-                MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokContent"),
-                    {"ItemName": ToolUtils.getItemDisplayName(ItemStack), "ItemAmount": Amount,  "Count": Count})
+                if len(Parts) >= 4:
+                    PluginName, ItemName, Amount, Count = Parts[0], Parts[1], Parts[2], Parts[3]
+                    ItemStack = ToolUtils.createItemStack(" ".join(Parts[0:2]))
+                    if ItemStack:
+                        MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokContent"),
+                            {"ItemName": ToolUtils.getItemDisplayName(ItemStack), "ItemAmount": Amount, "Count": Count})
             MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokDown"), {"Count": TotalCount})
             MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.WokHeatControl"), {"Heat": HeatLevel})
             EventUtils.setCancelled(Event, EventType, True)
@@ -1736,12 +1832,9 @@ def WokInteraction(Event, EventType):
         if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.wok.stirfry"):
             MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
             EventUtils.setCancelled(Event, EventType, True)
-            return
-        hasExistingDisplay = Data.get("Wok")
-        if hasExistingDisplay:  hasExistingDisplay = hasExistingDisplay.contains(FileKey)
-        else: hasExistingDisplay = False
+            return False
         MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
-        if MainHandItem:
+        if MainHandItem and MainHandItem.getType() != Material.AIR:
             toolMaterials = ToolUtils.getToolMaterials(Config, "Wok", "Spatula")
             isToolValid = False
             for material in toolMaterials:
@@ -1749,79 +1842,81 @@ def WokInteraction(Event, EventType):
                     isToolValid = True
                     break
             if isToolValid:
-                ItemList = Data.getStringList("Wok." + FileKey + ".Items")
-                if not ItemList:
+                if not hasExistingDisplay or not ItemList:
                     MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
                     EventUtils.setCancelled(Event, EventType, True)
                     return True
-            LastStirTime = Data.getLong("Wok." + FileKey + ".LastStirTime", 0)
-            StirCount = Data.getInt("Wok." + FileKey + ".Count", 0)
-            CurrentTime = System.currentTimeMillis()
-            if StirCount != 0 and CurrentTime - LastStirTime > Config.getInt("Setting.Wok.TimeOut") * 1000:
-                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.BurntFood"))
+                LastStirTime = Data.getLong("Wok." + FileKey + ".LastStirTime", 0)
+                StirCount = Data.getInt("Wok." + FileKey + ".Count", 0)
+                CurrentTime = System.currentTimeMillis()
+                if StirCount != 0 and CurrentTime - LastStirTime > Config.getInt("Setting.Wok.TimeOut") * 1000:
+                    MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.BurntFood"))
+                    EventUtils.setCancelled(Event, EventType, True)
+                    return True
+                StirFriedTime = Data.getLong("Wok." + FileKey + ".StirFriedTime", 0)
+                if StirFriedTime != 0 and CurrentTime - StirFriedTime < Config.getInt("Setting.Wok.Delay") * 1000:
+                    MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.StirFriedTooQuickly"))
+                    EventUtils.setCancelled(Event, EventType, True)
+                    return True
+                ParticleLocation = ClickBlock.getLocation().add(0.5, 1.1, 0.5)
+                EventUtils.sendParticle("WokStirItem", ParticleLocation)
+                Data.set("Wok." + FileKey + ".StirFriedTime", System.currentTimeMillis())
+                Data.set("Wok." + FileKey + ".LastStirTime", System.currentTimeMillis())
+                StirCount += 1
+                if MainHandItem.getDurability() < MainHandItem.getType().getMaxDurability():
+                    MainHandItem.setDurability(MainHandItem.getDurability() + 1)
+                    ClickPlayer.getInventory().setItemInMainHand(MainHandItem)
+                Data.set("Wok." + FileKey + ".Count", StirCount)
+                UpdatedItemList = []
+                for ItemEntry in ItemList:
+                    Parts = ItemEntry.split(" ")
+                    if len(Parts) >= 4:
+                        ItemType = Parts[0]
+                        ItemID = Parts[1]
+                        Quantity = int(Parts[2])
+                        StirTimes = int(Parts[3]) + 1
+                        UpdatedEntry = "{} {} {} {}".format(ItemType, ItemID, Quantity, StirTimes)
+                        UpdatedItemList.append(UpdatedEntry)
+                
+                Data.set("Wok." + FileKey + ".Items", UpdatedItemList)
+                Data.save()
+                MiniMessageUtils.sendActionBar(
+                    ClickPlayer, Config.getString("Messages.ActionBar.StirCount"), {"Count": StirCount})
+                MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.WokStirItem"))
                 EventUtils.setCancelled(Event, EventType, True)
                 return True
-            StirFriedTime = Data.getLong("Wok." + FileKey + ".StirFriedTime", 0)
-            if StirFriedTime != 0 and CurrentTime - StirFriedTime < Config.getInt("Setting.Wok.Delay") * 1000:
-                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.StirFriedTooQuickly"))
-                EventUtils.setCancelled(Event, EventType, True)
-                return True
-            ParticleLocation = ClickBlock.getLocation().add(0.5, 1.1, 0.5)
-            EventUtils.sendParticle("WokStirItem", ParticleLocation)
-            Data.set("Wok." + FileKey + ".StirFriedTime", System.currentTimeMillis())
-            Data.set("Wok." + FileKey + ".LastStirTime", System.currentTimeMillis())
-            StirCount += 1
-            MainHandItem.setDurability(MainHandItem.getDurability() + 1)
-            ClickPlayer.getInventory().setItemInMainHand(MainHandItem)
-            Data.set("Wok." + FileKey + ".Count", StirCount)
-            UpdatedItemList = []
-            for ItemEntry in ItemList:
-                Parts = ItemEntry.split(" ")
-                ItemType = Parts[0]
-                ItemID = Parts[1]
-                Quantity = int(Parts[2])
-                StirTimes = int(Parts[3]) + 1
-                UpdatedEntry = "{} {} {} {}".format(ItemType, ItemID, Quantity, StirTimes)
-                UpdatedItemList.append(UpdatedEntry)
-            Data.set("Wok." + FileKey + ".Items", UpdatedItemList)
-            Data.save()
-            MiniMessageUtils.sendActionBar(
-                ClickPlayer,Config.getString("Messages.ActionBar.StirCount"),{"Count": StirCount})
-            MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.WokStirItem"))
-            EventUtils.setCancelled(Event, EventType, True)
-            return True
         NeedBowl = Config.getBoolean("Setting.Wok.NeedBowl")
         if NeedBowl and MainHandItem and MainHandItem.getType() == Material.BOWL:
             if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.wok.serveout"):
                 MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
                 EventUtils.setCancelled(Event, EventType, True)
-                return
+                return False
             GetWokOutput(Data, FileKey, ClickPlayer, ClickBlock, HeatLevel)
             EventUtils.setCancelled(Event, EventType, True)
             return True
         if MainHandItem and MainHandItem.getType() != Material.AIR:
             CurrentItemIdentifier = ToolUtils.getItemIdentifier(MainHandItem)
             if hasExistingDisplay:
-                ItemList = Data.getStringList("Wok." + FileKey + ".Items")
                 NeedAddItem = False
                 DisplayLocation = CalculateDisplayLocation(ClickBlock, "Wok", MainHandItem)
                 NearbyDisplays = FindNearbyDisplay(DisplayLocation)
                 for Index, ItemEntry in enumerate(ItemList):
                     Parts = ItemEntry.split(" ")
-                    ItemTypeID = Parts[0] + " " + Parts[1]
-                    if ItemTypeID == CurrentItemIdentifier:
-                        CurrentAmount = int(Parts[2]) + 1
-                        StirCount = int(Parts[3])
-                        ItemList[Index] = ItemTypeID + " " + str(CurrentAmount) + " " + str(StirCount)
-                        NeedAddItem = True
-                        for Display in NearbyDisplays:
-                            if Display and not Display.isDead():
-                                DisplayItem = Display.getItemStack()
-                                if DisplayItem and ToolUtils.getItemIdentifier(DisplayItem) == CurrentItemIdentifier:
-                                    DisplayItem.setAmount(CurrentAmount)
-                                    Display.setItemStack(DisplayItem)
-                                    break
-                        break
+                    if len(Parts) >= 2:
+                        ItemTypeID = Parts[0] + " " + Parts[1]
+                        if ItemTypeID == CurrentItemIdentifier:
+                            CurrentAmount = int(Parts[2]) + 1
+                            StirCount = int(Parts[3])
+                            ItemList[Index] = ItemTypeID + " " + str(CurrentAmount) + " " + str(StirCount)
+                            NeedAddItem = True
+                            for Display in NearbyDisplays:
+                                if Display and not Display.isDead():
+                                    DisplayItem = Display.getItemStack()
+                                    if DisplayItem and ToolUtils.getItemIdentifier(DisplayItem) == CurrentItemIdentifier:
+                                        DisplayItem.setAmount(CurrentAmount)
+                                        Display.setItemStack(DisplayItem)
+                                        break
+                            break
                 if not NeedAddItem:
                     ItemListLength = len(ItemList)
                     ExtraOffset = 0.0001 * ItemListLength
@@ -1841,7 +1936,7 @@ def WokInteraction(Event, EventType):
                 DisplayItem = MainHandItem.clone()
                 DisplayLocation = CalculateDisplayLocation(ClickBlock, "Wok", MainHandItem)
                 CreateItemDisplay(DisplayLocation, DisplayItem, "Wok")
-            MiniMessageUtils.sendActionBar(ClickPlayer,Config.getString("Messages.ActionBar.WokAddItem"),
+            MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokAddItem"),
                 {"Material": ToolUtils.getItemDisplayName(MainHandItem)})
             RemoveItemToPlayer(ClickPlayer, MainHandItem)
             MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.WokAddItem"))
@@ -1854,20 +1949,23 @@ def WokInteraction(Event, EventType):
                 ClickPlayer.damage(DamageValue)
                 MiniMessageUtils.playSound(ClickPlayer, Config.get("Setting.Sound.WokScald"))
                 MiniMessageUtils.sendTitle(
-                    ClickPlayer,Config.getString("Messages.Title.Scald.MainTitle"),
-                    Config.getString("Messages.Title.Scald.SubTitle"),{"Damage": str(DamageValue)})
-            ItemList = Data.getStringList("Wok." + FileKey + ".Items")
-            if not ItemList:
+                    ClickPlayer, Config.getString("Messages.Title.Scald.MainTitle"),
+                    Config.getString("Messages.Title.Scald.SubTitle"), {"Damage": str(DamageValue)})
+            if not hasExistingDisplay or not ItemList:
                 MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
                 EventUtils.setCancelled(Event, EventType, True)
                 return True
             LastItemEntry = ItemList[-1]
             Parts = LastItemEntry.split(" ")
+            if len(Parts) < 4:
+                MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
+                EventUtils.setCancelled(Event, EventType, True)
+                return True
             ItemType = Parts[0]
             ItemID = Parts[1]
             Quantity = int(Parts[2])
             StirTimes = int(Parts[3])
-            ItemToGive = ToolUtils.createItemStack(LastItemEntry)
+            ItemToGive = ToolUtils.createItemStack(" ".join([ItemType, ItemID]))
             if ItemToGive:
                 GiveItemToPlayer(ClickPlayer, ItemToGive)
             Quantity -= 1
@@ -1941,17 +2039,16 @@ def GetWokOutput(DataFile, FileKey, ClickPlayer, ClickBlock, HeatLevel=0):
         Tolerance = WokRecipe.getInt(RecipeKey + ".FaultTolerance", 0)
         Amount = 0
         for Idx in range(len(ItemList)):
-            ItemEntry = ItemList[Idx]
-            RecipeEntry = RecipeItemList[Idx]
-            if ":" in ItemEntry:
-                if ItemEntry != RecipeEntry:
+            ItemEntry = ItemList[Idx].split(" ")
+            RecipeEntry = RecipeItemList[Idx].split(" ")
+            if len(ItemEntry) >= 2 and len(RecipeEntry) >= 2:
+                if ItemEntry[0] != RecipeEntry[0] or ItemEntry[1] != RecipeEntry[1]:
                     Match = False
                     break
             else:
-                if ItemEntry != RecipeEntry:
+                if ItemList[Idx] != RecipeItemList[Idx]:
                     Match = False
                     break
-                continue
             RecipeStirFry = RecipeEntry[3]
             ItemStirFry = int(ItemEntry[3])
             if "-" in RecipeStirFry:
@@ -2247,7 +2344,26 @@ def SteamerInteraction(Event, EventType):
                         MoistureValue = moistureVal
                         OutputItem = outputItem if outputItem != "AIR" else None
                         break
-            except:
+                    ItemParts = ItemIdentifier.split(" ")
+                    if len(ItemParts) >= 2:
+                        ItemNamespace = ItemParts[0]
+                        ItemID = ItemParts[1]
+                        configParts = inputItem.split(" ")
+                        if len(configParts) >= 2:
+                            configNamespace = configParts[0]
+                            configID = configParts[1]
+                            if configID == ItemID:
+                                IsMoistureItem = True
+                                MoistureValue = moistureVal
+                                OutputItem = outputItem if outputItem != "AIR" else None
+                                break
+                        else:
+                            if inputItem == ItemID:
+                                IsMoistureItem = True
+                                MoistureValue = moistureVal
+                                OutputItem = outputItem if outputItem != "AIR" else None
+                                break
+            except Exception as e:
                 continue
         if IsMoistureItem:
             if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.steamer.addmoisture"):
@@ -2265,6 +2381,26 @@ def SteamerInteraction(Event, EventType):
             if ItemIdentifier in FuelKeys:
                 IsValidFuel = True
                 FuelDuration = FuelConfig.getInt(ItemIdentifier)
+            else:
+                ItemParts = ItemIdentifier.split(" ")
+                if len(ItemParts) >= 2:
+                    ItemIDOnly = ItemParts[1]
+                    if ItemIDOnly in FuelKeys:
+                        IsValidFuel = True
+                        FuelDuration = FuelConfig.getInt(ItemIDOnly)
+                    else:
+                        for fuelKey in FuelKeys:
+                            if ":" in fuelKey:
+                                namespace, key_id = fuelKey.split(":", 1)
+                                if key_id == ItemIDOnly:
+                                    IsValidFuel = True
+                                    FuelDuration = FuelConfig.getInt(fuelKey)
+                                    break
+                            else:
+                                if fuelKey == ItemIDOnly:
+                                    IsValidFuel = True
+                                    FuelDuration = FuelConfig.getInt(fuelKey)
+                                    break
         if IsValidFuel:
             if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.steamer.addfuel"):
                 MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
@@ -2583,18 +2719,7 @@ def SaveSteamerInventory(SteamerKey, Inventory):
         MiniMessageUtils.sendMessage(Console, str(e))
 
 def AddFuelToHeatSource(Player, FuelItem, FuelDuration, SteamerFileKey, HeatSourceBlock):
-    """向热源方块添加燃料
-    
-    参数:
-        Player: 添加燃料的玩家
-        FuelItem: 燃料物品
-        FuelDuration: 燃料持续时间（秒）
-        SteamerFileKey: 蒸锅的FileKey
-        HeatSourceBlock: 热源方块
-        
-    返回:
-        bool: 是否成功添加燃料
-    """
+    """向热源方块添加燃料"""
     try:
         CurrentTime = System.currentTimeMillis()
         FuelDurationMs = FuelDuration * 1000
@@ -2612,25 +2737,14 @@ def AddFuelToHeatSource(Player, FuelItem, FuelDuration, SteamerFileKey, HeatSour
         StartSteamerTimer()
         FuelName = ToolUtils.getItemDisplayName(FuelItem)
         MiniMessageUtils.sendActionBar(Player, Config.getString("Messages.ActionBar.AddFuel"),
-            {"Item": FuelName, "Second": RemainingSeconds})
+            {"Item": FuelName, "Second": str(RemainingSeconds)})
         return True
     except Exception as e:
         MiniMessageUtils.sendMessage(Console, str(e))
         return False
 
 def AddMoistureToSteamer(Player, MoistureItem, MoistureValue, OutputItem, SteamerFileKey):
-    """向蒸锅添加水份
-    
-    参数:
-        Player: 添加水份的玩家
-        MoistureItem: 水份物品
-        MoistureValue: 水份值
-        OutputItem: 输出物品
-        SteamerFileKey: 蒸锅的FileKey
-        
-    返回:
-        bool: 是否成功添加水份
-    """
+    """向蒸锅添加水份"""
     try:
         MoisturePath = "Steamer." + SteamerFileKey + ".Moisture"
         CurrentMoisture = Data.getInt(MoisturePath, 0)
@@ -2646,7 +2760,7 @@ def AddMoistureToSteamer(Player, MoistureItem, MoistureValue, OutputItem, Steame
             StartSteamerTimer()
         ItemName = ToolUtils.getItemDisplayName(MoistureItem)
         MiniMessageUtils.sendActionBar(Player, Config.getString("Messages.ActionBar.AddMoisture"),
-            {"Item": ItemName, "Moisture": MoistureValue, "Total": NewMoisture})
+            {"Item": ItemName, "Moisture": str(MoistureValue), "Total": str(NewMoisture)})
         return True
     except Exception as e:
         MiniMessageUtils.sendMessage(Console, str(e))
@@ -2840,23 +2954,23 @@ def ProcessSteamConsumptionAndCooking(steamerKey):
         MiniMessageUtils.sendMessage(Console, str(e))
         return False
 
-def ExtinguishHeatSource(steamerKey):
-    """熄灭热源方块"""
+def ExtinguishHeatSource(SteamerFileKey):
+    """通过蒸锅熄灭热源方块"""
     try:
-        parts = steamerKey.split(",")
+        parts = SteamerFileKey.split(",")
         if len(parts) < 4:
-            return
+            return False
         x = int(parts[0])
         y = int(parts[1])
         z = int(parts[2])
         worldName = parts[3]
         world = Bukkit.getWorld(worldName)
         if not world:
-            return
+            return False
         steamerLocation = Location(world, x, y, z)
         heatSourceBlock = steamerLocation.getBlock().getRelative(BlockFace.DOWN)
         if not isHeatSourceBlock(heatSourceBlock):
-            return
+            return False
         if heatSourceBlock.getType() in [Material.CAMPFIRE, Material.SOUL_CAMPFIRE]:
             blockData = heatSourceBlock.getBlockData()
             if hasattr(blockData, 'setLit'):
@@ -2868,8 +2982,10 @@ def ExtinguishHeatSource(steamerKey):
                 furnaceState.setBurnTime(0)
                 furnaceState.update()
         heatSourceBlock.getState().update()
+        return True
     except Exception as e:
         MiniMessageUtils.sendMessage(Console, str(e))
+        return False
 
 def ProcessSteamProduction(steamerKey):
     """处理蒸汽产生"""
@@ -2910,26 +3026,26 @@ def ProcessSteamConsumption(steamerKey):
         return False
 
 def GiveItemToPlayer(Player, Item):
-    """给予玩家物品，处理背包空间不足的情况
-
-    参数
-        Player: 目标玩家
-        Item: 要给予的物品
-    """
-    if Player.getInventory().firstEmpty() != -1: Player.getInventory().addItem(Item)
-    else: Player.getWorld().dropItemNaturally(Player.getLocation(), Item)
+    """给予玩家物品，处理背包空间不足的情况"""
+    if not Player or not Item:
+        return
+    if Player.getInventory().firstEmpty() != -1:
+        Player.getInventory().addItem(Item)
+    else:
+        dropLocation = Player.getLocation()
+        ItemEntity = Player.getWorld().dropItemNaturally(dropLocation, Item)
+        ItemEntity.setPickupDelay(0)
 
 def RemoveItemToPlayer(Player, Item):
-    """移除玩家物品
-
-    参数
-        Player: 玩家
-        Item: 要移除的物品
-    """
+    """移除玩家物品"""
+    if not Player or not Item or Item.getType() == Material.AIR:
+        return
     if Item.getAmount() > 1:
-        Item.setAmount(Item.getAmount() - 1)
-        Player.getInventory().setItemInMainHand(Item)
-    else: Player.getInventory().setItemInMainHand(None)
+        newItem = Item.clone()
+        newItem.setAmount(Item.getAmount() - 1)
+        Player.getInventory().setItemInMainHand(newItem)
+    else:
+        Player.getInventory().setItemInMainHand(None)
 
 def CreateItemDisplay(Location, Item, Target):
     """创建物品展示实体并设置属性
@@ -3150,7 +3266,7 @@ def InitializePlugin():
             if (coolingTime > currentTime) or (moisture > 0) or (steam > 0):
                 StartSteamerTimer()
                 break
-    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"), {"Version": "v1.3.0", "Prefix": Prefix})
+    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"), {"Version": "v1.3.1", "Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console, u"{Prefix} <red>Discord: <gray>https://discord.gg/v39k5Vvzgb", {"Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console, u"{Prefix} <red>QQ群: <gray>299852340", {"Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console, u"{Prefix} <red>Wiki: <gray>https://github.com/jiuwu02/JiuWu-s_Kitchen/wiki", {"Prefix": Prefix})
