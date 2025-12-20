@@ -13,6 +13,7 @@ from org.bukkit.entity import Player, EntityType, ItemDisplay  # type: ignore
 from org.bukkit.inventory import EquipmentSlot, ItemStack  # type: ignore
 from org.bukkit.event.player import PlayerInteractEvent  # type: ignore
 from org.bukkit.event.block import BlockBreakEvent, Action  # type: ignore
+from org.bukkit.event.inventory import InventoryType, InventoryCloseEvent  # type: ignore
 
 from java.lang import System  # type: ignore
 from java.time import Duration  # type: ignore
@@ -28,16 +29,16 @@ from net.kyori.adventure.title import Title # type: ignore
 class ConfigManager:
     """配置文件管理类"""
 
-    # 类变量，存储配置实例
-    _config = None
-    _choppingBoardRecipe = None
-    _wokRecipe = None
-    _grinderRecipe = None
-    _data = None
-    _prefix = None
+    config = None
+    choppingBoardRecipe = None
+    wokRecipe = None
+    grinderRecipe = None
+    steamerRecipe = None
+    data = None
+    prefix = None
 
     @staticmethod
-    def _setConfigValue(configFile, path, defaultValue, comments=None):
+    def setConfigValue(configFile, path, defaultValue, comments=None):
         """为配置项设置默认值和注释
 
         参数
@@ -52,7 +53,7 @@ class ConfigManager:
                 configFile.setComments(path, comments)
 
     @staticmethod
-    def _loadConfig():
+    def loadConfig():
         """加载并初始化插件配置文件
 
         返回
@@ -62,65 +63,65 @@ class ConfigManager:
         configFile = ps.config.loadConfig(configPath)
 
         # 通用配置
-        ConfigManager._setConfigValue(configFile, "Setting.General.SearchRadius", 0.45,[u"搜索展示实体的半径"])
+        ConfigManager.setConfigValue(configFile, "Setting.General.SearchRadius", 0.45,[u"搜索展示实体的半径"])
 
         # 砧板设置
-        ConfigManager._setConfigValue(configFile,"Setting.ChoppingBoard.Drop",True,[u"砧板处理完成后是否掉落成品"])
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.StealthInteraction", True, [
+        ConfigManager.setConfigValue(configFile,"Setting.ChoppingBoard.Drop",True,[u"砧板处理完成后是否掉落成品"])
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.StealthInteraction", True, [
             u"是否需要在潜行状态下与砧板交互",
             u"启用时: 玩家必须潜行才能使用砧板功能",
             u"禁用时: 玩家可直接交互无需潜行"])
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Custom", False, [
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.Custom", False, [
             u"是否使用自定义方块作为砧板",
             u"启用时: 使用兼容插件的方块 (例如: CraftEngine)",
             u"禁用时: 使用原版的方块",
             "",
             u"CraftEngine的方块: craftengine <Key>:<ID>"])
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Material", "OAK_LOG")
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.SpaceRestriction", False, [
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.Material", "OAK_LOG")
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.SpaceRestriction", False, [
             u"砧板上方是否允许存在方块",
             u"启用时: 砧板上方有方块时无法使用",
             u"禁用时: 砧板上方允许存在方块"])
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Delay", 1.0, [
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.Delay", 1.0, [
             u"砧砧板交互的最小间隔时间 (秒)",
             u"防止玩家连续快速交互",
             u"设置为0表示无延迟"])
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.KitchenKnife.Custom", False, [
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.KitchenKnife.Custom", False, [
             u"是否使用自定义刀具",
             u"启用时: 使用兼容插件的物品 (例如: CraftEngine, MMOItems)",
             u"禁用时: 使用原版物品",
             "",
             u"CraftEngine物品: craftengine <Key>:<ID>",
             u"MMOItems物品: mmoitems <Type>:<ID>"])
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Enable", True, [
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Enable", True, [
             u"是否启用砧板事件",
             u"启用时: 切菜时有概率切伤手指"])
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Chance", 10)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Value", 2)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.KitchenKnife.Material", ["IRON_AXE"])
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.X", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.Y", 1.02)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.Z", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Rotation.X", 90.0)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Rotation.Y", 0.0)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Rotation.Z", 0.0, [
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Chance", 10)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.Damage.Value", 2)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.KitchenKnife.Material", ["IRON_AXE"])
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.X", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.Y", 1.02)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Offset.Z", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Rotation.X", 90.0)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Rotation.Y", 0.0)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Rotation.Z", 0.0, [
             u"允许Z轴旋转角度为小数 (0.0, 360.0)",
             u"也允许为一个范围值随机数 (0.0-360.0)"])
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Scale", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Item.Scale", 0.5)
 
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Offset.X", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Offset.Y", 1.125)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Offset.Z", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Rotation.X", 0.0)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Rotation.Y", 90.0)
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Rotation.Z", 0.0, [
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Offset.X", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Offset.Y", 1.125)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Offset.Z", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Rotation.X", 0.0)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Rotation.Y", 90.0)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Rotation.Z", 0.0, [
             u"允许Z轴旋转角度为小数 (0.0, 360.0)",
             u"也允许为一个范围值随机数 (0.0-360.0)"])
-        ConfigManager._setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Scale", 0.25)
+        ConfigManager.setConfigValue(configFile, "Setting.ChoppingBoard.DisplayEntity.Block.Scale", 0.25)
 
         # 炒锅设置
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.Drop", True, [u"炒锅烹饪完成后是否掉落成品"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.StealthInteraction", True, [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Drop", True, [u"炒锅烹饪完成后是否掉落成品"])
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.StealthInteraction", True, [
             u"控制与炒锅交互是否需要潜行",
             "",
             u"启用时: 所有炒锅交互 (放入食材/取出食材/翻炒) 都需要潜行状态",
@@ -128,102 +129,166 @@ class ConfigManager:
             "",
             u"禁用时: 所有炒锅交互 (放入食材/取出食材/翻炒) 都不需要潜行状态",
             u"如果未启用 Setting.Wok.NeedBowl 选项，则空手盛取成品 \"需要\" 潜行状态"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.Custom", False, [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Custom", False, [
             u"是否使用自定义炒锅方块",
             u"启用时: 使用兼容插件的方块(例如: CraftEngine)",
             u"禁用时: 使用原版方块",
             "",
             u"CraftEngine的方块: craftengine <Key>:<ID>"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.Material", "IRON_BLOCK")
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Material", "IRON_BLOCK")
+        ConfigManager.setConfigValue(
             configFile, "Setting.Wok.HeatControl", {"CAMPFIRE": 1,"MAGMA_BLOCK": 2,"LAVA": 3,},[
                 u"定义不同热源的烹饪强度",
                 u"数值越高代表火候越猛",
                 "",
                 u"支持 CraftEngine 插件的方块/家具",
                 u"CraftEngine的方块: craftengine <Key>:<ID>: <火候大小>"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.NeedBowl", True, [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.NeedBowl", True, [
             u"控制从炒锅盛出成品是否需要碗",
             u"启用时: 必须手持碗才能盛出成品",
             u"禁用时: 空手即可直接盛出成品",
             u"注意: 如果启用则盛出操作是否要求潜行由 Setting.Wok.StealthInteraction 控制"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.InvalidRecipeOutput", "STONE", [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.InvalidRecipeOutput", "STONE", [
             u"该选项用于当玩家放入不完整或无效的食材组合时",
             u"将成品盛出后会得到这个物品作为失败产物"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.Delay", 5, [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Delay", 5, [
             u"炒锅翻炒食材的延迟时间 (秒)",
             u"这个值应该小于 Setting.Wok.TimeOut"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.Damage.Enable", True, [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Damage.Enable", True, [
             u"是否启用炒锅取出食材烫伤事件",
             u"启用时: 如果锅内存在食材并且已经翻炒过，这时候取出食材将会受到伤害",
             u"禁用时: 从炒锅取出食材时将不会受到任何伤害"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.Damage.Value", 2)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.Failure.Enable", True, [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Damage.Value", 2)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Failure.Enable", True, [
             u"是否启用炒锅烹饪失败事件",
             u"启用时: 即使食材和步骤都正确，也有概率烹饪失败",
             u"禁用时: 只要食材和步骤正确，烹饪必定成功"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.Failure.Chance", 5)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.Failure.Type", "BONE_MEAL", [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Failure.Chance", 5)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Failure.Type", "BONE_MEAL", [
             u"炒锅烹饪失败时生成的产物类型"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.TimeOut", 30, [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.TimeOut", 30, [
             u"单次翻炒操作后的最大等待时间 (秒)",
             u"每次翻炒操作后会重置此计时器",
             u"计时结束前未再次翻炒: 锅内食材会烧焦变为失败产物"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.Spatula.Custom", False, [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Spatula.Custom", False, [
             u"是否使用自定义炒菜铲",
             u"启用时: 使用兼容插件的物品 (例如: CraftEngine, MMOItems)",
             u"禁用时: 使用原版物品",
             u"CraftEngine物品: craftengine <Key>:<ID>",
             u"MMOItems物品: mmoitems <Type>:<ID>"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.Spatula.Material", ["IRON_SHOVEL"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.X", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.Y", 1.02)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.Z", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Rotation.X", 90.0)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Rotation.Y", 0.0)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Rotation.Z", "0.0-90.0", [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.Spatula.Material", ["IRON_SHOVEL"])
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.X", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.Y", 1.02)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Offset.Z", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Rotation.X", 90.0)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Rotation.Y", 0.0)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Rotation.Z", "0.0-90.0", [
             u"允许Z轴旋转角度为小数 (0.0, 360.0)",
             u"也允许为一个范围值随机数 (0.0-360.0)"])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Scale", 0.5)
-
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Offset.X", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Offset.Y", 1.125)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Offset.Z", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Rotation.X", 0.0)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Rotation.Y", 90.0)
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Rotation.Z", 0.0, [
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Item.Scale", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Offset.X", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Offset.Y", 1.125)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Offset.Z", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Rotation.X", 0.0)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Rotation.Y", 90.0)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Rotation.Z", 0.0, [
             u"允许Z轴旋转角度为小数 (0.0, 360.0)",
             u"也允许为一个范围值随机数 (0.0-360.0)",
             u"",
             u"暂不推荐使用"
             ])
-        ConfigManager._setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Scale", 0.25)
+        ConfigManager.setConfigValue(configFile, "Setting.Wok.DisplayEntity.Block.Scale", 0.25)
 
         # 研磨机设置
-        ConfigManager._setConfigValue(configFile, "Setting.Grinder.Drop", True, [u"研磨机研磨完成后是否掉落成品"])
-        ConfigManager._setConfigValue(configFile, "Setting.Grinder.StealthInteraction", True, [
+        ConfigManager.setConfigValue(configFile, "Setting.Grinder.Drop", True, [u"研磨机研磨完成后是否掉落成品"])
+        ConfigManager.setConfigValue(configFile, "Setting.Grinder.StealthInteraction", True, [
             u"与研磨机交互是否需要潜行"])
-        ConfigManager._setConfigValue(configFile, "Setting.Grinder.Custom", False, [
+        ConfigManager.setConfigValue(configFile, "Setting.Grinder.Custom", False, [
             u"是否使用自定义研磨机方块",
             u"启用时: 使用兼容插件的方块(例如: CraftEngine)",
             u"禁用时: 使用原版方块",
             "",
             u"CraftEngine的方块: craftengine <Key>:<ID>"])
-        ConfigManager._setConfigValue(configFile, "Setting.Grinder.Material", "GRINDSTONE")
-        ConfigManager._setConfigValue(configFile, "Setting.Grinder.CheckDelay", 20, [
+        ConfigManager.setConfigValue(configFile, "Setting.Grinder.Material", "GRINDSTONE")
+        ConfigManager.setConfigValue(configFile, "Setting.Grinder.CheckDelay", 20, [
             u"研磨机检查完成状态的延迟时间 (Tick)",
             u"这个值也决定了研磨时播放粒子效果与声音播放的间隔"
         ])
 
+        # 蒸锅设置
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.Material", "BARREL", [
+            u"CraftEngine的方块: craftengine <Key>:<ID>"
+        ])
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.StealthInteraction", True, [
+            u"是否需要在潜行状态下与蒸锅交互",
+            u"启用时: 玩家必须潜行才能使用砧板功能",
+            u"禁用时: 玩家可直接交互无需潜行"])
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.OpenInventory.Type", "HOPPER", [
+            u"打开的容器类型",
+            u"详细请参考: https://jd.papermc.io/paper/1.21.11/org/bukkit/event/inventory/InventoryType.html"
+        ])
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.OpenInventory.Title", u"<dark_gray>蒸锅")
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.OpenInventory.Solt", 9, [
+            u"当 Setting.Steamer.OpenInventory.Type 为 CHEST 时才有效"
+        ])
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.HeatControl", ["FURNACE", "SMOKER"], [
+            u"能给蒸锅提供热源的方块",
+            u"",
+            u"CraftEngine的方块: craftengine <Key>:<ID>"
+        ])
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.Ignite", True, [
+            u"如果热源方块可以被点燃那么添加燃料后是否将热源方块点燃"
+        ])
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.Fuel", {
+            "STICK": 5,
+            "COAL": 80,
+            "CHARCOAL": 80,
+        }, [
+            u"允许向蒸锅添加的燃料，单位秒",
+            u""
+            u"CraftEngine物品: craftengine <Key>:<ID>",
+            u"MMOItems物品: mmoitems <Type>:<ID>"
+        ])
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.Moisture", [
+            "WATER_BUCKET & BUCKET & 120",
+            "POTION & GLASS_BOTTLE & 40"
+        ], [
+            u"物品能为蒸锅提供的水份",
+            u"输入物 & 输出物 & 提供的水分值",
+            u"如果不想拥有输出物，则将输出物写为 AIR",
+            u"",
+            u"CraftEngine物品: craftengine <Key>:<ID>",
+            u"MMOItems物品: mmoitems <Type>:<ID>"
+        ])
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.ResetToZero", True, [
+            u"如果设置为 True，那么当蒸锅蒸汽为 0 的时候，所有在蒸锅内的烹饪进度都将重置为 0",
+            u"如果设置为 False，那么将继续保留当前烹饪进度"
+        ])
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.SteamProductionEfficiency", 10, [
+            u"蒸汽产出效率，这个选项控制了物品给蒸锅提供的水份每秒可以将 1 水份转换为 10 蒸汽",
+            u"即 10蒸汽/s"
+        ])
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.SteamConversionEfficiency", 1, [
+            u"蒸汽转换效率，这个选项控制了食材使用蒸汽的速率",
+            u"即 1蒸汽/s"
+        ])
+        ConfigManager.setConfigValue(configFile, "Setting.Steamer.SteamConsumptionEfficiency", 1, [
+            u"蒸汽消耗效率，这个选项控制了蒸锅默认消耗的蒸汽速率，即使没有食材需要蒸煮也会消耗蒸汽",
+            u"即 1蒸汽/s"
+        ])
+
         # 消息设置
-        messages = {
+        Messages = {
             "Messages.Prefix": u"<gray>[ <gradient:#FF80FF:#00FFFF>JiuWu's Kitchen</gradient> ]</gray>",
             "Messages.Load": u"{Prefix} <green>欢迎使用 JiuWu's Kitchen! 版本 {Version} 已准备就绪!",
             "Messages.Reload.LoadPlugin": u"{Prefix} <green>JiuWu's Kitchen 已重新加载!",
             "Messages.Reload.LoadChoppingBoardRecipe": u"{Prefix} <green>已准备好 {Amount} 道砧板料理配方",
             "Messages.Reload.LoadWokRecipe": u"{Prefix} <green>已准备好 {Amount} 道炒锅料理配方",
             "Messages.Reload.LoadGrinderRecipe": u"{Prefix} <green>已准备好 {Amount} 道研磨机工序配方",
+            "Messages.Reload.LoadSteamerRecipe": u"{Prefix} <green>已准备好 {Amount} 道蒸锅料理配方",
             "Messages.InvalidMaterial": u"{Prefix} <red>大厨，这个食材 {Material} 似乎不太对劲...",
+            "Messages.NotStarted": u"<red>未开始!",
+            "Messages.Completed": u"<green>已完成!",
             "Messages.WokTop": u"<gold>炒锅中的食材:",
             "Messages.WokContent": u" <gray>{ItemName} <dark_gray>× <yellow>{ItemAmount} <gray>翻炒次数: <yellow>{Count}",
             "Messages.WokDown": u"<gold>总计翻炒次数: <yellow>{Count}",
@@ -235,7 +300,7 @@ class ConfigManager:
             "Messages.Title.Scald.SubTitle": u"<gray>小心热锅! 你受到了 <red>{Damage} <gray>点伤害",
             "Messages.Title.Grinder.MainTitle": u"<green>研磨开始!",
             "Messages.Title.Grinder.SubTitle": u"<gray>请等待 <green>{Time} <gray>秒研磨时间",
-            "Messages.ActionBar.TakeOffItem": u"<gray>提示：空手轻点砧板可取下食材",
+            "Messages.ActionBar.TakeOffItem": u"<gray>提示: 空手轻点砧板可取下食材",
             "Messages.ActionBar.WokNoItem": u"<red>炒锅空空如也，快放些食材吧! ",
             "Messages.ActionBar.WokAddItem": u"<green>向炒锅中添加了 <white>{Material} <green>食材! ",
             "Messages.ActionBar.CutAmount": u"<gray>切菜进度: <green>{CurrentCount} <dark_gray>/ <green>{NeedCount}",
@@ -251,62 +316,65 @@ class ConfigManager:
             "Messages.ActionBar.NoGrinderReplace": u"<red>这个东西太硬了，研磨机无法处理! ",
             "Messages.ActionBar.OnRunGrinder": u"<red>研磨机正在工作中! 请稍后再试! ",
             "Messages.ActionBar.SuccessGrinder": u"<green>研磨成功!",
+            "Messages.ActionBar.AddFuel": u"<green>已添加燃料: <white>{Item} <dark_gray>| <green>剩余燃烧时间: <yellow>{Second}秒",
+            "Messages.ActionBar.AddMoisture": u"<green>已添加物品: <aqua>{Item} <dark_gray>| <green>增加水份值: <aqua>{Moisture} <dark_gray>| <green>当前水份值: <blue>{Total}",
+            "Messages.ActionBar.SteamerInfo": u"<gray>燃烧时间: <yellow>{BurningTime}</yellow>秒 | 水份: <aqua>{Moisture}</aqua> | 蒸汽: <white>{Steam}</white> | 烹饪进度: <yellow>{Progress}</gray>",
+            "Messages.ActionBar.ChoppingBoardTooFast": u"<red>操作太快了! 请稍等片刻再继续!",
             "Messages.PluginLoad.CraftEngine": u"{Prefix} <green>检测到 CraftEngine 插件",
             "Messages.PluginLoad.MMOItems": u"{Prefix} <green>检测到 MMOItems 插件",
-            "Messages.PluginLoad.PlaceholderAPI": u"{Prefix} <green>检测到 PlaceholderAPI 插件",
-            "Messages.ActionBar.ChoppingBoardTooFast": u"<red>操作太快了! 请稍等片刻再继续!"
+            "Messages.PluginLoad.PlaceholderAPI": u"{Prefix} <green>检测到 PlaceholderAPI 插件"
         }
 
-        for key, value in messages.items(): ConfigManager._setConfigValue(configFile, key, value)
+        for KEY, VALUE in Messages.items(): ConfigManager.setConfigValue(configFile, KEY, VALUE)
 
         # 音效设置
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(
             configFile, "Setting.Sound.ChoppingBoardAddItem", u"entity.item_frame.add_item", [u"砧板添加食材的音效"])
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(
             configFile, "Setting.Sound.ChoppingBoardCutItem", u"item.axe.strip", [u"砧板切割食材的音效"])
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(
             configFile, "Setting.Sound.ChoppingBoardCutHand", u"entity.player.hurt", [u"砧板切割时手被切伤的音效"])
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(
             configFile, "Setting.Sound.WokAddItem", u"block.anvil.hit", [u"炒锅添加食材的音效"])
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(
             configFile, "Setting.Sound.WokStirItem", u"block.lava.extinguish", [u"炒锅翻炒食材的音效"])
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(
             configFile, "Setting.Sound.WokScald", u"entity.player.hurt_on_fire", [u"炒锅翻炒时手被烫伤的音效"])
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(
             configFile, "Setting.Sound.WokTakeOffItem", u"entity.item.pickup", [u"炒锅取出食材的音效"])
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(
             configFile, "Setting.Sound.GrinderStart", u"block.grindstone.use", [u"研磨机开始研磨的音效"])
 
         # 粒子设置
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(
             configFile, "Setting.Particle.ChoppingBoardCutItem.Type", "CLOUD", [u"砧板切割食材的粒子"])
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.Amount", 10)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.OffsetX", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.OffsetY", 1.0)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.OffsetZ", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.Speed", 0.05)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.Amount", 10)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.OffsetX", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.OffsetY", 1.0)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.OffsetZ", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.ChoppingBoardCutItem.Speed", 0.05)
 
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(
             configFile, "Setting.Particle.WokStirItem.Type", "CAMPFIRE_COSY_SMOKE", [u"炒锅翻炒食材的粒子"])
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.Amount", 10)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.OffsetX", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.OffsetY", 1.0)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.OffsetZ", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.WokStirItem.Speed", 0.05)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.WokStirItem.Amount", 10)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.WokStirItem.OffsetX", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.WokStirItem.OffsetY", 1.0)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.WokStirItem.OffsetZ", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.WokStirItem.Speed", 0.05)
 
-        ConfigManager._setConfigValue(
+        ConfigManager.setConfigValue(
             configFile, "Setting.Particle.GrinderStart.Type", "GLOW", [u"研磨机开始研磨的粒子"])
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.GrinderStart.Amount", 10)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.GrinderStart.OffsetX", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.GrinderStart.OffsetY", 1.0)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.GrinderStart.OffsetZ", 0.5)
-        ConfigManager._setConfigValue(configFile, "Setting.Particle.GrinderStart.Speed", 0.05)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.GrinderStart.Amount", 10)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.GrinderStart.OffsetX", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.GrinderStart.OffsetY", 1.0)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.GrinderStart.OffsetZ", 0.5)
+        ConfigManager.setConfigValue(configFile, "Setting.Particle.GrinderStart.Speed", 0.05)
 
         configFile.save()
         return ps.config.loadConfig(configPath)
 
     @staticmethod
-    def _loadChoppingBoardRecipe():
+    def loadChoppingBoardRecipe():
         """加载砧板配方配置文件
 
         返回:
@@ -316,7 +384,7 @@ class ConfigManager:
         return ps.config.loadConfig(choppingBoardRecipePath)
 
     @staticmethod
-    def _loadWokRecipe():
+    def loadWokRecipe():
         """加载炒锅配方配置文件
 
         返回:
@@ -326,7 +394,17 @@ class ConfigManager:
         return ps.config.loadConfig(wokRecipePath)
 
     @staticmethod
-    def _loadData():
+    def loadSteamerRecipe():
+        """加载蒸锅配方配置文件
+
+        返回:
+            对象: 蒸锅配方文件
+        """
+        steamerRecipePath = "JiuWu's Kitchen/Recipe/Steamer.yml"
+        return ps.config.loadConfig(steamerRecipePath)
+
+    @staticmethod
+    def loadData():
         """加载数据文件
 
         返回:
@@ -336,7 +414,7 @@ class ConfigManager:
         return ps.config.loadConfig(dataPath)
 
     @staticmethod
-    def _loadGrinderRecipe():
+    def loadGrinderRecipe():
         """加载研磨机配方配置文件
 
         返回:
@@ -348,54 +426,62 @@ class ConfigManager:
     @staticmethod
     def getConfig():
         """获取主配置对象"""
-        if ConfigManager._config is None:
-            ConfigManager._config = ConfigManager._loadConfig()
-        return ConfigManager._config
+        if ConfigManager.config is None:
+            ConfigManager.config = ConfigManager.loadConfig()
+        return ConfigManager.config
 
     @staticmethod
     def getChoppingBoardRecipe():
         """获取砧板配方配置"""
-        if ConfigManager._choppingBoardRecipe is None:
-            ConfigManager._choppingBoardRecipe = ConfigManager._loadChoppingBoardRecipe()
-        return ConfigManager._choppingBoardRecipe
+        if ConfigManager.choppingBoardRecipe is None:
+            ConfigManager.choppingBoardRecipe = ConfigManager.loadChoppingBoardRecipe()
+        return ConfigManager.choppingBoardRecipe
 
     @staticmethod
     def getWokRecipe():
         """获取炒锅配方配置"""
-        if ConfigManager._wokRecipe is None:
-            ConfigManager._wokRecipe = ConfigManager._loadWokRecipe()
-        return ConfigManager._wokRecipe
+        if ConfigManager.wokRecipe is None:
+            ConfigManager.wokRecipe = ConfigManager.loadWokRecipe()
+        return ConfigManager.wokRecipe
 
     @staticmethod
     def getGrinderRecipe():
         """获取研磨机配方配置"""
-        if ConfigManager._grinderRecipe is None:
-            ConfigManager._grinderRecipe = ConfigManager._loadGrinderRecipe()
-        return ConfigManager._grinderRecipe
+        if ConfigManager.grinderRecipe is None:
+            ConfigManager.grinderRecipe = ConfigManager.loadGrinderRecipe()
+        return ConfigManager.grinderRecipe
+    
+    @staticmethod
+    def getSteamerRecipe():
+        """获取蒸锅配方配置"""
+        if ConfigManager.steamerRecipe is None:
+            ConfigManager.steamerRecipe = ConfigManager.loadSteamerRecipe()
+        return ConfigManager.steamerRecipe
 
     @staticmethod
     def getData():
         """获取数据文件"""
-        if ConfigManager._data is None:
-            ConfigManager._data = ConfigManager._loadData()
-        return ConfigManager._data
+        if ConfigManager.data is None:
+            ConfigManager.data = ConfigManager.loadData()
+        return ConfigManager.data
 
     @staticmethod
     def getPrefix():
         """获取消息前缀"""
-        if ConfigManager._prefix is None:
-            ConfigManager._prefix = ConfigManager.getConfig().getString("Messages.Prefix")
-        return ConfigManager._prefix
+        if ConfigManager.prefix is None:
+            ConfigManager.prefix = ConfigManager.getConfig().getString("Messages.Prefix")
+        return ConfigManager.prefix
 
     @staticmethod
     def reloadAll():
         """重新加载所有配置文件"""
-        ConfigManager._config = ConfigManager._loadConfig()
-        ConfigManager._choppingBoardRecipe = ConfigManager._loadChoppingBoardRecipe()
-        ConfigManager._wokRecipe = ConfigManager._loadWokRecipe()
-        ConfigManager._grinderRecipe = ConfigManager._loadGrinderRecipe()
-        ConfigManager._data = ConfigManager._loadData()
-        ConfigManager._prefix = None
+        ConfigManager.config = ConfigManager.loadConfig()
+        ConfigManager.choppingBoardRecipe = ConfigManager.loadChoppingBoardRecipe()
+        ConfigManager.wokRecipe = ConfigManager.loadWokRecipe()
+        ConfigManager.grinderRecipe = ConfigManager.loadGrinderRecipe()
+        ConfigManager.steamerRecipe = ConfigManager.loadSteamerRecipe()
+        ConfigManager.data = ConfigManager.loadData()
+        ConfigManager.prefix = None
 
 class MiniMessageUtils:
     """MiniMessage工具类"""
@@ -682,6 +768,7 @@ Prefix = ConfigManager.getPrefix()
 ChoppingBoardRecipe = ConfigManager.getChoppingBoardRecipe()
 WokRecipe = ConfigManager.getWokRecipe()
 GrinderRecipe = ConfigManager.getGrinderRecipe()
+SteamerRecipe = ConfigManager.getSteamerRecipe()
 Data = ConfigManager.getData()
 Console = Bukkit.getServer().getConsoleSender()
 
@@ -724,24 +811,35 @@ class EventHandler:
     @staticmethod
     def handleInteraction(Event, EventType):
         """处理交互事件"""
-        # 处理砧板方块
-        if ChoppingBoardInteraction(Event, EventType): return True
-        # 处理炒锅方块
-        if WokInteraction(Event, EventType): return True
-        # 处理研磨机方块
-        if GrinderInteraction(Event, EventType): return True
-        return False
+        try:
+            # 处理砧板方块
+            if ChoppingBoardInteraction(Event, EventType):  return True
+            # 处理炒锅方块
+            if WokInteraction(Event, EventType):  return True
+            # 处理研磨机方块
+            if GrinderInteraction(Event, EventType):  return True
+            # 处理蒸锅方块
+            if SteamerInteraction(Event, EventType):  return True
+            return False
+        except Exception as e:
+            MiniMessageUtils.sendMessage(Console, str(e))
+            return False
 
     @staticmethod
     def handleBreak(Event, EventType):
         """处理破坏事件"""
-        # 处理砧板方块
-        if ChoppingBoardBreak(Event, EventType): return True
-        # 处理炒锅方块
-        if WokBreak(Event, EventType): return True
-        # 处理研磨机方块
-        if GrinderBreak(Event, EventType): return True
-        return False
+        try:
+            # 处理砧板方块
+            if ChoppingBoardBreak(Event, EventType):  return True
+            # 处理炒锅方块
+            if WokBreak(Event, EventType):  return True
+            # 处理研磨机方块
+            if GrinderBreak(Event, EventType):  return True
+                
+            return False
+        except Exception as e:
+            MiniMessageUtils.sendMessage(Console, str(e))
+            return False
 
 class EventUtils:
     """事件工具类"""
@@ -983,7 +1081,6 @@ class ToolUtils:
     # 类常量
     CRAFTENGINE = "craftengine"
     MMOITEMS = "mmoitems"
-    MINECRAFT = "minecraft"
 
     @staticmethod
     def parseAndExecuteCommand(CommandStr, ExecutePlayer=None, Chance=100, ExecuteCount=1):
@@ -1112,27 +1209,24 @@ class ToolUtils:
         返回:
             bool: 是否为指定工具
         """
-        if not Item or Item.getType() == Material.AIR: 
-            return False
-        
+        if not Item or Item.getType() == Material.AIR:  return False
         CustomSetting = Config.getBoolean("Setting." + Type + "." + Tool + ".Custom")
         if material is not None:
             materialToCheck = material
         else:
             materials = ToolUtils.getToolMaterials(Config, Type, Tool)
             materialToCheck = materials[0] if materials else None
-        if materialToCheck is None:
-            return False
+        if materialToCheck is None: return False
         if CustomSetting:
-            if " " in materialToCheck:
-                Identifier, ID = materialToCheck.split(" ", 1)
+            if ":" in materialToCheck:
+                Identifier, ID = materialToCheck.split(":", 1)
                 if Identifier == ToolUtils.CRAFTENGINE and CraftEngineAvailable:
                     return ToolUtils.isCraftEngineItem(Item, ID)
                 elif Identifier == ToolUtils.MMOITEMS and MMOItemsAvailable:
                     return ToolUtils.isMMOItemsItem(Item, ID)
         else:
             try: 
-                return Item.getType() == Material.valueOf(materialToCheck)
+                return Item.getType() == Material.valueOf(materialToCheck.upper())
             except: 
                 pass
         return False
@@ -1209,7 +1303,7 @@ class ToolUtils:
             mmoItemsId = ToolUtils.getMMOItemsItemId(Item)
             if mmoItemsId: return ToolUtils.MMOITEMS + " " + mmoItemsId
         # 默认返回原版物品标识
-        return ToolUtils.MINECRAFT + " " + Item.getType().name()
+        return Item.getType().name()
 
     @staticmethod
     def getCraftEngineItemId(Item):
@@ -1257,21 +1351,28 @@ class ToolUtils:
             ItemStack: 物品栈
         """
         if not ItemKey: return None
-        Parts = ItemKey.split(" ")
-        if len(Parts) < 1: return None
-        ItemType = Parts[0]
-
-        # 根据物品类型创建不同的物品栈
-        if ItemType == ToolUtils.MINECRAFT: return ToolUtils.createMinecraftItem(Parts, Amount)
-        elif ItemType == ToolUtils.CRAFTENGINE and CraftEngineAvailable:
-            return ToolUtils.createCraftEngineItem(Parts, Amount)
-        elif ItemType == ToolUtils.MMOITEMS and MMOItemsAvailable: return ToolUtils.createMMOItemsItem(Parts, Amount)
+        if ":" in ItemKey:
+            Parts = ItemKey.split(":", 1)
+            ItemType = Parts[0]
+            ItemId = Parts[1]
+            if ItemType == ToolUtils.CRAFTENGINE and CraftEngineAvailable:
+                return ToolUtils.createCraftEngineItem(ItemId, Amount)
+            elif ItemType == ToolUtils.MMOITEMS and MMOItemsAvailable:
+                return ToolUtils.createMMOItemsItem(ItemId, Amount)
+            else:
+                # 未知插件类型，尝试作为原版物品
+                try:
+                    Item = Material.valueOf(ItemKey.replace(":", "_").upper())
+                    return ItemStack(Item, Amount)
+                except:
+                    return None
         else:
-            # 尝试将整个ItemKey作为原版物品名
+            # 原版物品: 直接使用材料名称
             try:
-                Item = Material.valueOf(ItemType)
+                Item = Material.valueOf(ItemKey.upper())
                 return ItemStack(Item, Amount)
-            except: return None
+            except:
+                return None
 
     @staticmethod
     def createMinecraftItem(Parts, Amount):
@@ -1291,7 +1392,7 @@ class ToolUtils:
         except: return None
 
     @staticmethod
-    def createCraftEngineItem(Parts, Amount):
+    def createCraftEngineItem(ItemId, Amount):
         """创建CraftEngine物品
 
         参数:
@@ -1304,16 +1405,18 @@ class ToolUtils:
         try:
             from net.momirealms.craftengine.bukkit.api import CraftEngineItems  # type: ignore
             from net.momirealms.craftengine.core.util import Key  # type: ignore
-            if len(Parts) > 1:
-                KeyParts = Parts[1].split(":")
-                if len(KeyParts) >= 2:
-                    CraftEngineItem = CraftEngineItems.byId(Key(KeyParts[0], KeyParts[1])).buildItemStack()
-                    CraftEngineItem.setAmount(Amount)
-                    return CraftEngineItem
-        except Exception: return None
+            
+            KeyParts = ItemId.split(":")
+            if len(KeyParts) >= 2:
+                CraftEngineItem = CraftEngineItems.byId(Key(KeyParts[0], KeyParts[1])).buildItemStack()
+                CraftEngineItem.setAmount(Amount)
+                return CraftEngineItem
+        except Exception:
+            pass
+        return None
 
     @staticmethod
-    def createMMOItemsItem(Parts, Amount):
+    def createMMOItemsItem(ItemId, Amount):
         """创建MMOItems物品
 
         参数:
@@ -1325,15 +1428,16 @@ class ToolUtils:
         """
         try:
             from net.Indyuce.mmoitems import MMOItems  # type: ignore
-            if len(Parts) > 1:
-                IdParts = Parts[1].split(":")
-                if len(IdParts) >= 2:
-                    MMOItemsItem = MMOItems.plugin.getMMOItem(
-                        MMOItems.plugin.getTypes().get(IdParts[0]), IdParts[1]
-                        ).newBuilder().build()
-                    MMOItemsItem.setAmount(Amount)
-                    return MMOItemsItem
-        except Exception: return None
+            IdParts = ItemId.split(":")
+            if len(IdParts) >= 2:
+                MMOItemsItem = MMOItems.plugin.getMMOItem(
+                    MMOItems.plugin.getTypes().get(IdParts[0]), IdParts[1]
+                ).newBuilder().build()
+                MMOItemsItem.setAmount(Amount)
+                return MMOItemsItem
+        except Exception:
+            pass
+        return None
 
     @staticmethod
     def getItemDisplayName(Item):
@@ -1365,16 +1469,16 @@ class ToolUtils:
 def ChoppingBoardBreak(Event, EventType):
     """砧砧板破坏事件处理"""
     BreakBlock = EventUtils.getBreakBlock(Event, EventType)
-    if not EventUtils.isTargetBlock(BreakBlock, "ChoppingBoard"):  return False
+    if not EventUtils.isTargetBlock(BreakBlock, "ChoppingBoard"): return False
     FileKey = GetFileKey(BreakBlock)
     hasExistingDisplay = Data.contains("ChoppingBoard." + FileKey + ".CutCount")
-    if not hasExistingDisplay:  return False
+    if not hasExistingDisplay: return False
     DisplayLocation = CalculateDisplayLocation(BreakBlock, "ChoppingBoard")
     ItemDisplayEntity = FindNearbyDisplay(DisplayLocation)
-    if not ItemDisplayEntity:  return False
+    if not ItemDisplayEntity: return False
     ItemDisplayEntity = ItemDisplayEntity[0]
     DisplayItem = ItemDisplayEntity.getItemStack()
-    if not DisplayItem:  return False
+    if not DisplayItem: return False
     ItemEntity = BreakBlock.getWorld().dropItem(DisplayLocation, DisplayItem)
     ItemEntity.setPickupDelay(0)
     Data.set("ChoppingBoard." + FileKey, None)
@@ -1443,11 +1547,11 @@ def ChoppingBoardInteraction(Event, EventType):
         if NearbyDisplay:
             MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.TakeOffItem"))
             EventUtils.setCancelled(Event, EventType, True)
-    if not EventUtils.isLeftClick(Event, EventType):  return False
-    if not EventUtils.isTargetBlock(ClickBlock, "ChoppingBoard"):  return False
-    if not EventUtils.isSneaking(ClickPlayer, "ChoppingBoard"):  return False
+    if not EventUtils.isLeftClick(Event, EventType): return False
+    if not EventUtils.isTargetBlock(ClickBlock, "ChoppingBoard"): return False
+    if not EventUtils.isSneaking(ClickPlayer, "ChoppingBoard"): return False
     if Config.getBoolean("Setting.ChoppingBoard.SpaceRestriction"):
-        if ClickBlock.getRelative(BlockFace.UP).getType() != Material.AIR:  return False
+        if ClickBlock.getRelative(BlockFace.UP).getType() != Material.AIR: return False
     if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.choppingboard.interaction"):
         MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
         EventUtils.setCancelled(Event, EventType, True)
@@ -1757,21 +1861,15 @@ def WokInteraction(Event, EventType):
                 MiniMessageUtils.sendActionBar(ClickPlayer, Config.getString("Messages.ActionBar.WokNoItem"))
                 EventUtils.setCancelled(Event, EventType, True)
                 return True
-
-            # 获取最后一个物品条目
             LastItemEntry = ItemList[-1]
             Parts = LastItemEntry.split(" ")
             ItemType = Parts[0]
             ItemID = Parts[1]
             Quantity = int(Parts[2])
             StirTimes = int(Parts[3])
-
-            # 创建要给予玩家的物品
             ItemToGive = ToolUtils.createItemStack(LastItemEntry)
             if ItemToGive:
                 GiveItemToPlayer(ClickPlayer, ItemToGive)
-
-            # 减少数量或移除条目
             Quantity -= 1
             if Quantity <= 0:
                 ItemList.pop()
@@ -1779,15 +1877,10 @@ def WokInteraction(Event, EventType):
                     Data.set("Wok." + FileKey, None)
                 else:
                     Data.set("Wok." + FileKey + ".Items", ItemList)
-
-                # 查找并删除对应的展示实体
                 DisplayLocation = CalculateDisplayLocation(ClickBlock, "Wok", ItemToGive)
                 NearbyDisplays = FindNearbyDisplay(DisplayLocation)
                 if NearbyDisplays:
-                    # 创建用于比较的物品标识符
                     TargetIdentifier = ToolUtils.getItemIdentifier(ItemToGive)
-
-                    # 查找匹配的展示实体
                     for display in NearbyDisplays:
                         if display and not display.isDead():
                             displayItem = display.getItemStack()
@@ -1795,18 +1888,12 @@ def WokInteraction(Event, EventType):
                                 display.remove()
                                 break
             else:
-                # 更新物品列表中的数量
                 ItemList[-1] = "{} {} {} {}".format(ItemType, ItemID, Quantity, StirTimes)
                 Data.set("Wok." + FileKey + ".Items", ItemList)
-
-                # 更新展示实体的数量显示
                 DisplayLocation = CalculateDisplayLocation(ClickBlock, "Wok", ItemToGive)
                 NearbyDisplays = FindNearbyDisplay(DisplayLocation)
                 if NearbyDisplays:
-                    # 创建用于比较的物品标识符
                     TargetIdentifier = ToolUtils.getItemIdentifier(ItemToGive)
-
-                    # 查找匹配的展示实体并更新数量
                     for display in NearbyDisplays:
                         if display and not display.isDead():
                             displayItem = display.getItemStack()
@@ -1814,7 +1901,6 @@ def WokInteraction(Event, EventType):
                                 displayItem.setAmount(Quantity)
                                 display.setItemStack(displayItem)
                                 break
-
             Data.save()
             EventUtils.setCancelled(Event, EventType, True)
             return True
@@ -1855,14 +1941,14 @@ def GetWokOutput(DataFile, FileKey, ClickPlayer, ClickBlock, HeatLevel=0):
         Tolerance = WokRecipe.getInt(RecipeKey + ".FaultTolerance", 0)
         Amount = 0
         for Idx in range(len(ItemList)):
-            ItemEntry = ItemList[Idx].split(" ")
-            RecipeEntry = RecipeItemList[Idx].split(" ")
-            if ItemEntry[0] != RecipeEntry[0] or ItemEntry[1] != RecipeEntry[1]:
-                Match = False
-                break
-            if ItemEntry[2] != RecipeEntry[2]:
-                Amount += abs(int(ItemEntry[2]) - int(RecipeEntry[2]))
-                if Amount > Tolerance:
+            ItemEntry = ItemList[Idx]
+            RecipeEntry = RecipeItemList[Idx]
+            if ":" in ItemEntry:
+                if ItemEntry != RecipeEntry:
+                    Match = False
+                    break
+            else:
+                if ItemEntry != RecipeEntry:
                     Match = False
                     break
                 continue
@@ -2023,7 +2109,7 @@ def StartGrinderCheckTask():
     global GrinderTask
     if GrinderTask is not None:
         try:
-            ps.scheduler.cancelTask(GrinderTask)
+            ps.scheduler.stopTask(GrinderTask)
         except:
             pass
         GrinderTask = None
@@ -2043,7 +2129,7 @@ def CheckAllGrinders():
     if grinderSection is None:
         if GrinderTask is not None:
             try:
-                ps.scheduler.cancelTask(GrinderTask)
+                ps.scheduler.stopTask(GrinderTask)
             except:
                 pass
             GrinderTask = None
@@ -2052,7 +2138,7 @@ def CheckAllGrinders():
     if not grinderKeys:
         if GrinderTask is not None:
             try:
-                ps.scheduler.cancelTask(GrinderTask)
+                ps.scheduler.stopTask(GrinderTask)
             except:
                 GrinderTask = None
         return
@@ -2102,6 +2188,726 @@ def CheckSingleGrinder(FileKey):
         MiniMessageUtils.playSound(SoundLocation, SoundName)
 
 CheckAllGrinders()
+
+SteamerTempData = {}
+SteamerInventories = {}
+SteamerTask = None
+SteamerProcessingData = {}
+
+def SteamerInteraction(Event, EventType):
+    """蒸锅交互事件处理"""
+    ClickPlayer = EventUtils.getPlayer(Event, EventType)
+    ClickBlock = EventUtils.getInteractionBlock(Event, EventType)
+    if not ClickBlock:  return False
+    if EventUtils.isTargetBlock(ClickBlock, "Steamer"):
+        if not EventUtils.isMainHand(Event, EventType):  return False
+        if not EventUtils.isRightClick(Event, EventType):  return False
+        if not EventUtils.isSneaking(ClickPlayer, "Steamer"):    return False
+        BottomBlock = ClickBlock.getRelative(BlockFace.DOWN)
+        if not isHeatSourceBlock(BottomBlock):
+            return False
+        if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.steamer.interaction"):
+            MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
+            EventUtils.setCancelled(Event, EventType, True)
+            return True
+        EventUtils.setCancelled(Event, EventType, True)
+        OpenSteamerGUI(ClickPlayer, ClickBlock)
+        return True
+    
+    # 检查热源方块交互
+    elif isHeatSourceBlock(ClickBlock):
+        TopBlock = ClickBlock.getRelative(BlockFace.UP)
+        if not EventUtils.isTargetBlock(TopBlock, "Steamer"): return False
+        MainHandItem = ClickPlayer.getInventory().getItemInMainHand()
+        if (not MainHandItem or MainHandItem.getType() == Material.AIR) and EventUtils.isRightClick(Event, EventType):
+            if not EventUtils.isSneaking(ClickPlayer, "Steamer"):  return False
+            EventUtils.setCancelled(Event, EventType, True)
+            SteamerFileKey = GetFileKey(TopBlock)
+            return ShowSteamerInfo(ClickPlayer, SteamerFileKey)
+        if not EventUtils.isMainHand(Event, EventType):  return False
+        if not EventUtils.isRightClick(Event, EventType):  return False
+        if not EventUtils.isSneaking(ClickPlayer, "Steamer"):  return False
+        if not MainHandItem or MainHandItem.getType() == Material.AIR:
+            EventUtils.setCancelled(Event, EventType, True)
+            return True
+        ItemIdentifier = ToolUtils.getItemIdentifier(MainHandItem)
+        IsMoistureItem = False
+        MoistureValue = 0
+        OutputItem = None
+        MoistureConfig = Config.getStringList("Setting.Steamer.Moisture")
+        for moistureEntry in MoistureConfig:
+            try:
+                parts = moistureEntry.split(" & ")
+                if len(parts) >= 3:
+                    inputItem = parts[0].strip()
+                    outputItem = parts[1].strip() if len(parts) > 1 else "AIR"
+                    moistureVal = int(parts[2].strip()) if len(parts) > 2 else 0
+                    if inputItem == ItemIdentifier:
+                        IsMoistureItem = True
+                        MoistureValue = moistureVal
+                        OutputItem = outputItem if outputItem != "AIR" else None
+                        break
+            except:
+                continue
+        if IsMoistureItem:
+            if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.steamer.addmoisture"):
+                MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
+                EventUtils.setCancelled(Event, EventType, True)
+                return True
+            EventUtils.setCancelled(Event, EventType, True)
+            SteamerFileKey = GetFileKey(TopBlock)
+            return AddMoistureToSteamer(ClickPlayer, MainHandItem, MoistureValue, OutputItem, SteamerFileKey)
+        IsValidFuel = False
+        FuelDuration = 0
+        FuelConfig = Config.get("Setting.Steamer.Fuel")
+        if FuelConfig:
+            FuelKeys = FuelConfig.getKeys(False)
+            if ItemIdentifier in FuelKeys:
+                IsValidFuel = True
+                FuelDuration = FuelConfig.getInt(ItemIdentifier)
+        if IsValidFuel:
+            if not EventUtils.getPermission(ClickPlayer, "jiuwukitchen.steamer.addfuel"):
+                MiniMessageUtils.sendMessage(ClickPlayer, Config.getString("Messages.NoPermission"), {"Prefix": Prefix})
+                EventUtils.setCancelled(Event, EventType, True)
+                return True
+            EventUtils.setCancelled(Event, EventType, True)
+            SteamerFileKey = GetFileKey(TopBlock)
+            return AddFuelToHeatSource(ClickPlayer, MainHandItem, FuelDuration, SteamerFileKey, ClickBlock)
+        EventUtils.setCancelled(Event, EventType, True)
+        return True
+    return False
+
+def ShowSteamerInfo(Player, SteamerFileKey):
+    """显示蒸锅信息到ActionBar，包含烹饪进度状态
+    
+    参数:
+        Player: 玩家对象
+        SteamerFileKey: 蒸锅的数据键
+        
+    返回:
+        bool: 是否成功显示信息
+    """
+    try:
+        CoolingTimePath = "Steamer." + SteamerFileKey + ".CoolingTime"
+        MoisturePath = "Steamer." + SteamerFileKey + ".Moisture"
+        SteamPath = "Steamer." + SteamerFileKey + ".Steam"
+        CurrentTime = System.currentTimeMillis()
+        CoolingTime = Data.getLong(CoolingTimePath, 0)
+        Moisture = Data.getInt(MoisturePath, 0)
+        Steam = Data.getInt(SteamPath, 0)
+        RemainingBurnTime = 0
+        if CoolingTime > CurrentTime:
+            RemainingBurnTime = (CoolingTime - CurrentTime) // 1000
+        ProgressStatus = CalculateCookingProgress(SteamerFileKey)
+        Placeholders = {
+            "BurningTime": RemainingBurnTime, 
+            "Moisture": Moisture, 
+            "Steam": Steam,
+            "Progress": ProgressStatus
+        }
+        MiniMessageUtils.sendActionBar(Player, Config.getString("Messages.ActionBar.SteamerInfo"), Placeholders)
+        return True
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+        return False
+
+def CalculateCookingProgress(SteamerFileKey):
+    """计算蒸锅的烹饪进度状态"""
+    try:
+        SlotsPath = "Steamer." + SteamerFileKey + ".Slots"
+        CookingProgressPath = "Steamer." + SteamerFileKey + ".CookingProgress"
+        SteamPath = "Steamer." + SteamerFileKey + ".Steam"
+        CurrentSteam = Data.getInt(SteamPath, 0)
+        if CurrentSteam <= 0:
+            if not Data.contains(SlotsPath) or not Data.contains(CookingProgressPath):
+                return Config.getString("Messages.NotStarted")
+            Slots = Data.getStringList(SlotsPath)
+            CookingProgress = Data.getIntegerList(CookingProgressPath)
+            AllProgressZero = True
+            for progress in CookingProgress:
+                if progress > 0:
+                    AllProgressZero = False
+                    break
+            if AllProgressZero:
+                return Config.getString("Messages.NotStarted")
+        if not Data.contains(SlotsPath) or not Data.contains(CookingProgressPath):
+            return Config.getString("Messages.NotStarted")
+        Slots = Data.getStringList(SlotsPath)
+        CookingProgress = Data.getIntegerList(CookingProgressPath)
+        if len(CookingProgress) < len(Slots):
+            CookingProgress.extend([0] * (len(Slots) - len(CookingProgress)))
+        elif len(CookingProgress) > len(Slots):
+            CookingProgress = CookingProgress[:len(Slots)]
+        TotalRequiredSteam = 0
+        TotalCurrentProgress = 0
+        HasValidIngredients = False
+        AllItemsCompleted = True
+        ActiveItemsCount = 0
+        for i in range(len(Slots)):
+            if i >= len(CookingProgress):
+                continue
+            itemIdentifier = Slots[i]
+            if itemIdentifier == "AIR":
+                continue
+            isInputItem = SteamerRecipe.contains(itemIdentifier)
+            isOutputItem = False
+            originalInputItem = None
+            if not isInputItem:
+                for recipeKey in SteamerRecipe.getKeys(False):
+                    outputItem = SteamerRecipe.getString(recipeKey + ".Output")
+                    if outputItem and outputItem == itemIdentifier:
+                        isOutputItem = True
+                        originalInputItem = recipeKey
+                        break
+            if not isInputItem and not isOutputItem:
+                AllItemsCompleted = False
+                continue
+            ActiveItemsCount += 1
+            HasValidIngredients = True
+            if isInputItem:
+                currentItem = itemIdentifier
+                RecipeSteam = SteamerRecipe.getInt(currentItem + ".Steam", 0)
+            else:
+                currentItem = originalInputItem
+                RecipeSteam = SteamerRecipe.getInt(currentItem + ".Steam", 0)
+            OutputItem = SteamerRecipe.getString(currentItem + ".Output")
+            if RecipeSteam <= 0 or not OutputItem:
+                AllItemsCompleted = False
+                continue
+            TotalRequiredSteam += RecipeSteam
+            if i < len(CookingProgress):
+                CurrentProgress = CookingProgress[i]
+                if isOutputItem:
+                    TotalCurrentProgress += RecipeSteam
+                else:
+                    TotalCurrentProgress += min(CurrentProgress, RecipeSteam)
+                if isOutputItem or CurrentProgress >= RecipeSteam:
+                    pass
+                else:
+                    AllItemsCompleted = False
+            else:
+                AllItemsCompleted = False
+        if not HasValidIngredients or ActiveItemsCount == 0:
+            return Config.getString("Messages.NotStarted")
+        if AllItemsCompleted and ActiveItemsCount > 0:
+            return Config.getString("Messages.Completed")
+        if CurrentSteam <= 0 and TotalCurrentProgress == 0:
+            return Config.getString("Messages.NotStarted")
+        if TotalRequiredSteam > 0:
+            Percentage = (float(TotalCurrentProgress) / TotalRequiredSteam) * 100
+            Percentage = max(0, min(100, Percentage))
+            FormattedPercentage = "{:.2f}%".format(Percentage)
+            return FormattedPercentage
+        else:
+            return "0.00%"
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+        return Config.getString("Messages.NotStarted")
+
+def isHeatSourceBlock(Block):
+    """判断方块是否是有效的热源方块"""
+    HeatControlList = Config.getStringList("Setting.Steamer.HeatControl")
+    if not HeatControlList: return False
+    if Block.getType().name() in HeatControlList: return True
+    if CraftEngineAvailable:
+        try:
+            from net.momirealms.craftengine.bukkit.api import CraftEngineBlocks  # type: ignore
+            if CraftEngineBlocks.isCustomBlock(Block):
+                BlockState = CraftEngineBlocks.getCustomBlockState(Block)
+                CraftEngineKey = "craftengine " + str(BlockState)
+                return CraftEngineKey in HeatControlList
+        except:
+            pass
+    return False
+
+def OpenSteamerGUI(Player, SteamerBlock):
+    """打开蒸锅GUI"""
+    try:
+        InventoryTypeStr = Config.getString("Setting.Steamer.OpenInventory.Type", "HOPPER")
+        TitleText = Config.getString("Setting.Steamer.OpenInventory.Title", u"<dark_gray>蒸锅")
+        SlotCount = Config.getInt("Setting.Steamer.OpenInventory.Slot", 9)
+        TargetInventoryType = None
+        try:
+            TargetInventoryType = InventoryType.valueOf(InventoryTypeStr)
+        except:
+            TargetInventoryType = InventoryType.HOPPER
+        TitleComponent = MiniMessageUtils.processMessage(TitleText)
+        if TargetInventoryType == InventoryType.CHEST:
+            if SlotCount % 9 != 0:
+                SlotCount = (SlotCount // 9) * 9
+                if SlotCount < 9:
+                    SlotCount = 9
+            Inventory = Bukkit.createInventory(None, SlotCount, TitleComponent)
+        else:
+            Inventory = Bukkit.createInventory(None, TargetInventoryType, TitleComponent)
+            SlotCount = Inventory.getSize()
+        SteamerKey = GetFileKey(SteamerBlock)
+        PlayerUUID = Player.getUniqueId().toString()
+        SteamerTempData[PlayerUUID] = {
+            "steamerKey": SteamerKey,
+            "block": SteamerBlock,
+            "inventoryType": InventoryTypeStr,
+            "slotCount": SlotCount
+        }
+        SteamerInventories[PlayerUUID] = Inventory
+        LoadSteamerInventory(SteamerKey, Inventory)
+        Player.openInventory(Inventory)
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+
+def LoadSteamerInventory(SteamerKey, Inventory):
+    """加载蒸锅已有的物品到GUI中，基于槽位索引独立加载进度"""
+    try:
+        SlotsPath = "Steamer." + SteamerKey + ".Slots"
+        CookingProgressPath = "Steamer." + SteamerKey + ".CookingProgress"
+        if Data.contains(SlotsPath):
+            SlotItems = Data.getStringList(SlotsPath)
+            CookingProgress = []
+            if Data.contains(CookingProgressPath):
+                CookingProgress = Data.getIntegerList(CookingProgressPath)
+            else:
+                CookingProgress = [0] * len(SlotItems)
+            if len(CookingProgress) < len(SlotItems):
+                CookingProgress.extend([0] * (len(SlotItems) - len(CookingProgress)))
+            elif len(CookingProgress) > len(SlotItems):
+                CookingProgress = CookingProgress[:len(SlotItems)]
+            for i, itemIdentifier in enumerate(SlotItems):
+                if i >= Inventory.getSize():
+                    break
+                if itemIdentifier != "AIR":
+                    ItemStack = ToolUtils.createItemStack(itemIdentifier, 1)
+                    if ItemStack:
+                        Inventory.setItem(i, ItemStack)
+            Data.set(CookingProgressPath, CookingProgress)
+            Data.save()
+        else:
+            Data.set(CookingProgressPath, [])
+            Data.save()
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+
+def SteamerInventoryClose(Event):
+    """蒸锅GUI关闭事件处理"""
+    Player = Event.getPlayer()
+    PlayerUUID = Player.getUniqueId().toString()
+    if PlayerUUID not in SteamerTempData: 
+        return
+    Inventory = Event.getInventory()
+    SteamerData = SteamerTempData[PlayerUUID]
+    SteamerKey = SteamerData["steamerKey"]
+    ProcessExcessSteamerItems(Player, Inventory)
+    SaveSteamerInventory(SteamerKey, Inventory)
+    if PlayerUUID in SteamerTempData:
+        del SteamerTempData[PlayerUUID]
+    if PlayerUUID in SteamerInventories:
+        del SteamerInventories[PlayerUUID]
+    slotsPath = "Steamer." + SteamerKey + ".Slots"
+    if Data.contains(slotsPath):
+        slots = Data.getStringList(slotsPath)
+        hasValidIngredients = False
+        for itemIdentifier in slots:
+            if itemIdentifier != "AIR" and SteamerRecipe.contains(itemIdentifier):
+                hasValidIngredients = True
+                break
+        if hasValidIngredients:
+            StartSteamerTimer()
+
+ps.listener.registerListener(SteamerInventoryClose, InventoryCloseEvent)
+
+def ProcessExcessSteamerItems(Player, Inventory):
+    """处理蒸锅GUI中的多余物品
+    
+    参数:
+        Player: 玩家对象
+        Inventory: 库存对象
+    """
+    try:
+        for slot in range(Inventory.getSize()):
+            item = Inventory.getItem(slot)
+            if item and item.getType() != Material.AIR and item.getAmount() > 1:
+                excess_amount = item.getAmount() - 1
+                excess_item = item.clone()
+                excess_item.setAmount(excess_amount)
+                item.setAmount(1)
+                Inventory.setItem(slot, item)
+                ReturnExcessItemsToPlayer(Player, excess_item)
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+
+def ReturnExcessItemsToPlayer(Player, ExcessItem):
+    """将多余物品返还给玩家
+    
+    参数:
+        Player: 玩家对象
+        ExcessItem: 多余的物品
+    """
+    try:
+        if Player.getInventory().firstEmpty() != -1:
+            Player.getInventory().addItem(ExcessItem)
+        else:
+            drop_location = Player.getLocation()
+            Player.getWorld().dropItemNaturally(drop_location, ExcessItem)
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+
+def SaveSteamerInventory(SteamerKey, Inventory):
+    """保存蒸锅GUI中的物品数据和烹饪进度"""
+    try:
+        OldSlotsPath = "Steamer." + SteamerKey + ".Slots"
+        OldCookingProgressPath = "Steamer." + SteamerKey + ".CookingProgress"
+        
+        OldSlots = []
+        OldCookingProgress = []
+        if Data.contains(OldSlotsPath):
+            OldSlots = Data.getStringList(OldSlotsPath)
+        if Data.contains(OldCookingProgressPath):
+            OldCookingProgress = Data.getIntegerList(OldCookingProgressPath)
+        NewSlotItems = []
+        NewCookingProgress = []
+        for i in range(Inventory.getSize()):
+            Item = Inventory.getItem(i)
+            if Item and Item.getType() != Material.AIR:
+                ItemIdentifier = ToolUtils.getItemIdentifier(Item)
+                NewSlotItems.append(ItemIdentifier)
+                if i < len(OldCookingProgress) and i < len(OldSlots) and OldSlots[i] == ItemIdentifier:
+                    NewCookingProgress.append(OldCookingProgress[i])
+                else:
+                    NewCookingProgress.append(0)
+            else:
+                NewSlotItems.append("AIR")
+                NewCookingProgress.append(0)
+        Data.set(OldSlotsPath, NewSlotItems)
+        Data.set(OldCookingProgressPath, NewCookingProgress)
+        Data.save()
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+
+def AddFuelToHeatSource(Player, FuelItem, FuelDuration, SteamerFileKey, HeatSourceBlock):
+    """向热源方块添加燃料
+    
+    参数:
+        Player: 添加燃料的玩家
+        FuelItem: 燃料物品
+        FuelDuration: 燃料持续时间（秒）
+        SteamerFileKey: 蒸锅的FileKey
+        HeatSourceBlock: 热源方块
+        
+    返回:
+        bool: 是否成功添加燃料
+    """
+    try:
+        CurrentTime = System.currentTimeMillis()
+        FuelDurationMs = FuelDuration * 1000
+        CoolingTimePath = "Steamer." + SteamerFileKey + ".CoolingTime"
+        CurrentCoolingTime = Data.getLong(CoolingTimePath, 0)
+        if CurrentCoolingTime > CurrentTime:
+            NewCoolingTime = CurrentCoolingTime + FuelDurationMs
+        else:
+            NewCoolingTime = CurrentTime + FuelDurationMs
+        Data.set(CoolingTimePath, NewCoolingTime)
+        Data.save()
+        RemoveItemToPlayer(Player, FuelItem)
+        RemainingSeconds = (NewCoolingTime - CurrentTime) // 1000
+        IgniteHeatSourceBlock(HeatSourceBlock, RemainingSeconds)
+        StartSteamerTimer()
+        FuelName = ToolUtils.getItemDisplayName(FuelItem)
+        MiniMessageUtils.sendActionBar(Player, Config.getString("Messages.ActionBar.AddFuel"),
+            {"Item": FuelName, "Second": RemainingSeconds})
+        return True
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+        return False
+
+def AddMoistureToSteamer(Player, MoistureItem, MoistureValue, OutputItem, SteamerFileKey):
+    """向蒸锅添加水份
+    
+    参数:
+        Player: 添加水份的玩家
+        MoistureItem: 水份物品
+        MoistureValue: 水份值
+        OutputItem: 输出物品
+        SteamerFileKey: 蒸锅的FileKey
+        
+    返回:
+        bool: 是否成功添加水份
+    """
+    try:
+        MoisturePath = "Steamer." + SteamerFileKey + ".Moisture"
+        CurrentMoisture = Data.getInt(MoisturePath, 0)
+        NewMoisture = CurrentMoisture + MoistureValue
+        Data.set(MoisturePath, NewMoisture)
+        Data.save()
+        RemoveItemToPlayer(Player, MoistureItem)
+        if OutputItem and OutputItem != "AIR":
+            OutputItemStack = ToolUtils.createItemStack(OutputItem, 1)
+            if OutputItemStack:
+                GiveItemToPlayer(Player, OutputItemStack)
+        if NewMoisture > 0:
+            StartSteamerTimer()
+        ItemName = ToolUtils.getItemDisplayName(MoistureItem)
+        MiniMessageUtils.sendActionBar(Player, Config.getString("Messages.ActionBar.AddMoisture"),
+            {"Item": ItemName, "Moisture": MoistureValue, "Total": NewMoisture})
+        return True
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+        return False
+
+def IgniteHeatSourceBlock(HeatSourceBlock, RemainingSeconds):
+    """点燃热源方块"""
+    try:
+        blockType = HeatSourceBlock.getType()
+        if blockType == Material.CAMPFIRE or blockType == Material.SOUL_CAMPFIRE:
+            blockData = HeatSourceBlock.getBlockData()
+            if hasattr(blockData, 'setLit'):
+                blockData.setLit(True)
+                HeatSourceBlock.setBlockData(blockData)
+        elif blockType in [Material.FURNACE, Material.BLAST_FURNACE, Material.SMOKER]:
+            furnaceState = HeatSourceBlock.getState()
+            if hasattr(furnaceState, 'setBurnTime'):
+                furnaceState.setBurnTime(RemainingSeconds * 20)
+                furnaceState.update()
+        HeatSourceBlock.getState().update()
+        return True
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+        return False
+
+def StartSteamerTimer():
+    """启动蒸锅全局计时器"""
+    global SteamerTask
+    if SteamerTask is not None:
+        try:
+            ps.scheduler.stopTask(SteamerTask)
+        except:
+            pass
+    SteamerTask = ps.scheduler.scheduleRepeatingTask(ProcessAllSteamers, 20, 20)
+
+def ProcessAllSteamers():
+    """处理所有蒸锅的蒸汽产生和消耗"""
+    global SteamerTask
+    try:
+        steamerSection = Data.getConfigurationSection("Steamer")
+        if steamerSection is None:
+            if SteamerTask is not None:
+                try:
+                    ps.scheduler.stopTask(SteamerTask)
+                    SteamerTask = None
+                except:
+                    pass
+            return
+        steamerKeys = steamerSection.getKeys(False)
+        if not steamerKeys:
+            if SteamerTask is not None:
+                try:
+                    ps.scheduler.stopTask(SteamerTask)
+                    SteamerTask = None
+                except:
+                    pass
+            return
+        currentTime = System.currentTimeMillis()
+        hasActiveSteamer = False
+        for steamerKey in steamerKeys:
+            coolingTimePath = "Steamer." + steamerKey + ".CoolingTime"
+            coolingTime = Data.getLong(coolingTimePath, 0)
+            if coolingTime > 0 and currentTime >= coolingTime:
+                ExtinguishHeatSource(steamerKey)
+                Data.set(coolingTimePath, 0)
+                Data.save()
+            if coolingTime > currentTime:
+                if ProcessSteamProduction(steamerKey):
+                    hasActiveSteamer = True
+            if ProcessSteamConsumptionAndCooking(steamerKey):
+                hasActiveSteamer = True
+        if not hasActiveSteamer and SteamerTask is not None:
+            try:
+                ps.scheduler.stopTask(SteamerTask)
+                SteamerTask = None
+            except:
+                pass
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+
+def ProcessSingleSteamer(steamerKey, currentTime):
+    """处理单个蒸锅的蒸汽逻辑和食材烹饪"""
+    try:
+        coolingTimePath = "Steamer." + steamerKey + ".CoolingTime"
+        coolingTime = Data.getLong(coolingTimePath, 0)
+        shouldExtinguish = False
+        if coolingTime > 0 and currentTime >= coolingTime:
+            ExtinguishHeatSource(steamerKey)
+            Data.set(coolingTimePath, 0)
+            Data.save()
+            shouldExtinguish = True
+        isActive = False
+        if coolingTime > currentTime:
+            if ProcessSteamProduction(steamerKey):
+                isActive = True
+        if ProcessSteamConsumptionAndCooking(steamerKey):
+            isActive = True
+        steamPath = "Steamer." + steamerKey + ".Steam"
+        currentSteam = Data.getInt(steamPath, 0)
+        if shouldExtinguish and currentSteam > 0:
+            isActive = True
+        return isActive
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+        return False
+
+def ProcessSteamConsumptionAndCooking(steamerKey):
+    """处理蒸汽消耗和食材烹饪"""
+    try:
+        steamPath = "Steamer." + steamerKey + ".Steam"
+        currentSteam = Data.getInt(steamPath, 0)
+        resetToZero = Config.getBoolean("Setting.Steamer.ResetToZero", True)
+        if currentSteam <= 0 and resetToZero:
+            return False
+        steamConversionEfficiency = Config.getInt("Setting.Steamer.SteamConversionEfficiency", 1)
+        steamConsumptionEfficiency = Config.getInt("Setting.Steamer.SteamConsumptionEfficiency", 1)
+        slotsPath = "Steamer." + steamerKey + ".Slots"
+        cookingProgressPath = "Steamer." + steamerKey + ".CookingProgress"
+        if not Data.contains(slotsPath):
+            newSteam = max(0, currentSteam - steamConsumptionEfficiency)
+            Data.set(steamPath, newSteam)
+            Data.save()
+            return newSteam > 0
+        slots = Data.getStringList(slotsPath)
+        cookingProgress = []
+        if Data.contains(cookingProgressPath):
+            cookingProgress = Data.getIntegerList(cookingProgressPath)
+        else:
+            cookingProgress = [0] * len(slots)
+            Data.set(cookingProgressPath, cookingProgress)
+            Data.save()
+        if len(cookingProgress) < len(slots):
+            cookingProgress.extend([0] * (len(slots) - len(cookingProgress)))
+        elif len(cookingProgress) > len(slots):
+            cookingProgress = cookingProgress[:len(slots)]
+        validIngredients = 0
+        totalIngredientConsumption = 0
+        for i, itemIdentifier in enumerate(slots):
+            if itemIdentifier != "AIR" and SteamerRecipe.contains(itemIdentifier):
+                validIngredients += 1
+                totalIngredientConsumption += steamConversionEfficiency
+        totalSteamConsumption = steamConsumptionEfficiency + totalIngredientConsumption
+        if currentSteam < totalSteamConsumption:
+            availableForIngredients = max(0, currentSteam - steamConsumptionEfficiency)
+            if availableForIngredients <= 0:
+                newSteam = 0
+                Data.set(steamPath, newSteam)
+                Data.save()
+                return False
+            actualIngredientConsumption = min(availableForIngredients, totalIngredientConsumption)
+            newSteam = max(0, currentSteam - steamConsumptionEfficiency - actualIngredientConsumption)
+            if totalIngredientConsumption > 0:
+                progressRatio = float(actualIngredientConsumption) / float(totalIngredientConsumption)
+                for i, itemIdentifier in enumerate(slots):
+                    if i >= len(cookingProgress):
+                        continue
+                    if itemIdentifier != "AIR" and SteamerRecipe.contains(itemIdentifier):
+                        additionalProgress = int(steamConversionEfficiency * progressRatio)
+                        cookingProgress[i] = min(cookingProgress[i] + additionalProgress, 
+                                              SteamerRecipe.getInt(itemIdentifier + ".Steam", 0))
+            Data.set(steamPath, newSteam)
+            Data.set(cookingProgressPath, cookingProgress)
+            Data.save()
+            return newSteam > 0
+        newSteam = currentSteam - totalSteamConsumption
+        Data.set(steamPath, newSteam)
+        completedItems = []
+        for i in range(len(slots)):
+            if i >= len(cookingProgress):
+                continue
+            itemIdentifier = slots[i]
+            if itemIdentifier == "AIR" or not SteamerRecipe.contains(itemIdentifier):
+                continue
+            recipeSteam = SteamerRecipe.getInt(itemIdentifier + ".Steam", 0)
+            outputItem = SteamerRecipe.getString(itemIdentifier + ".Output")
+            if recipeSteam <= 0 or not outputItem:
+                continue
+            currentProgress = cookingProgress[i]
+            newProgress = currentProgress + steamConversionEfficiency
+            cookingProgress[i] = newProgress
+            if newProgress >= recipeSteam:
+                slots[i] = outputItem
+                cookingProgress[i] = 0
+                completedItems.append((i, outputItem))
+        Data.set(slotsPath, slots)
+        Data.set(cookingProgressPath, cookingProgress)
+        Data.save()
+        return validIngredients > 0 or newSteam > 0
+        
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+        return False
+
+def ExtinguishHeatSource(steamerKey):
+    """熄灭热源方块"""
+    try:
+        parts = steamerKey.split(",")
+        if len(parts) < 4:
+            return
+        x = int(parts[0])
+        y = int(parts[1])
+        z = int(parts[2])
+        worldName = parts[3]
+        world = Bukkit.getWorld(worldName)
+        if not world:
+            return
+        steamerLocation = Location(world, x, y, z)
+        heatSourceBlock = steamerLocation.getBlock().getRelative(BlockFace.DOWN)
+        if not isHeatSourceBlock(heatSourceBlock):
+            return
+        if heatSourceBlock.getType() in [Material.CAMPFIRE, Material.SOUL_CAMPFIRE]:
+            blockData = heatSourceBlock.getBlockData()
+            if hasattr(blockData, 'setLit'):
+                blockData.setLit(False)
+                heatSourceBlock.setBlockData(blockData)
+        elif heatSourceBlock.getType() in [Material.FURNACE, Material.BLAST_FURNACE, Material.SMOKER]:
+            furnaceState = heatSourceBlock.getState()
+            if hasattr(furnaceState, 'setBurnTime'):
+                furnaceState.setBurnTime(0)
+                furnaceState.update()
+        heatSourceBlock.getState().update()
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+
+def ProcessSteamProduction(steamerKey):
+    """处理蒸汽产生"""
+    try:
+        moisturePath = "Steamer." + steamerKey + ".Moisture"
+        steamPath = "Steamer." + steamerKey + ".Steam"
+        currentMoisture = Data.getInt(moisturePath, 0)
+        currentSteam = Data.getInt(steamPath, 0)
+        if currentMoisture <= 0:
+            return False
+        productionEfficiency = Config.getInt("Setting.Steamer.SteamProductionEfficiency", 10)
+        steamProduced = min(currentMoisture, productionEfficiency)
+        newMoisture = max(0, currentMoisture - steamProduced)
+        newSteam = currentSteam + steamProduced
+        Data.set(moisturePath, newMoisture)
+        Data.set(steamPath, newSteam)
+        Data.save()
+        return True
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+        return False
+
+def ProcessSteamConsumption(steamerKey):
+    """处理蒸汽消耗"""
+    try:
+        steamPath = "Steamer." + steamerKey + ".Steam"
+        currentSteam = Data.getInt(steamPath, 0)
+        if currentSteam <= 0:
+            return False
+        consumptionEfficiency = Config.getInt("Setting.Steamer.SteamConsumptionEfficiency", 1)
+        totalConsumption = consumptionEfficiency
+        newSteam = max(0, currentSteam - totalConsumption)
+        Data.set(steamPath, newSteam)
+        Data.save()
+        return newSteam > 0
+    except Exception as e:
+        MiniMessageUtils.sendMessage(Console, str(e))
+        return False
 
 def GiveItemToPlayer(Player, Item):
     """给予玩家物品，处理背包空间不足的情况
@@ -2285,23 +3091,27 @@ def CommandExecute(sender, label, args):
     return False
 
 def ReloadPlugin(Target = Console):
-    ConfigManager.reloadAll()
     global Config, Prefix, ChoppingBoardRecipe, WokRecipe, Data, GrinderRecipe
+    ConfigManager.reloadAll()
     Config = ConfigManager.getConfig()
     Prefix = ConfigManager.getPrefix()
     ChoppingBoardRecipe = ConfigManager.getChoppingBoardRecipe()
     WokRecipe = ConfigManager.getWokRecipe()
     GrinderRecipe = ConfigManager.getGrinderRecipe()
+    SteamerRecipe = ConfigManager.getSteamerRecipe()
     Data = ConfigManager.getData()
     ChoppingBoardRecipeAmount = ChoppingBoardRecipe.getKeys(False).size()
     WokRecipeAmount = WokRecipe.getKeys(False).size()
     GrinderRecipeAmount = GrinderRecipe.getKeys(False).size()
+    SteamerRecipeAmount = SteamerRecipe.getKeys(False).size()
     MiniMessageUtils.sendMessage(Target, Config.getString("Messages.Reload.LoadChoppingBoardRecipe"),
                                  {"Prefix": Prefix, "Amount": int(ChoppingBoardRecipeAmount)})
     MiniMessageUtils.sendMessage(Target, Config.getString("Messages.Reload.LoadWokRecipe"),
                                  {"Prefix": Prefix, "Amount": int(WokRecipeAmount)})
     MiniMessageUtils.sendMessage(Target, Config.getString("Messages.Reload.LoadGrinderRecipe"),
                                  {"Prefix": Prefix, "Amount": int(GrinderRecipeAmount)})
+    MiniMessageUtils.sendMessage(Target, Config.getString("Messages.Reload.LoadSteamerRecipe"),
+                                 {"Prefix": Prefix, "Amount": int(SteamerRecipeAmount)})
 
 def TabCommandExecute(sender, label, args):
     """提供命令的补全建议
@@ -2324,23 +3134,30 @@ def InitializePlugin():
     """插件初始化函数"""
     global PlaceholderAPIAvailable
     ServerPluginLoad()
-
     if not PlaceholderAPIAvailable:
         if not PlaceholderAPIAvailable:
             MiniMessageUtils.sendMessage(Console, u"{Prefix} <red>服务器未安装 PlaceholderAPI 插件!", {"Prefix": Prefix})
         MiniMessageUtils.sendMessage(Console, u"{Prefix} <red>启动 JiuWu's Kitchen 失败", {"Prefix": Prefix})
         return False
-
-    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"), {"Version": "v1.2.6", "Prefix": Prefix})
+    steamerSection = Data.getConfigurationSection("Steamer")
+    if steamerSection:
+        steamerKeys = steamerSection.getKeys(False)
+        currentTime = System.currentTimeMillis()
+        for steamerKey in steamerKeys:
+            coolingTime = Data.getLong("Steamer." + steamerKey + ".CoolingTime", 0)
+            moisture = Data.getInt("Steamer." + steamerKey + ".Moisture", 0)
+            steam = Data.getInt("Steamer." + steamerKey + ".Steam", 0)
+            if (coolingTime > currentTime) or (moisture > 0) or (steam > 0):
+                StartSteamerTimer()
+                break
+    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"), {"Version": "v1.3.0", "Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console, u"{Prefix} <red>Discord: <gray>https://discord.gg/v39k5Vvzgb", {"Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console, u"{Prefix} <red>QQ群: <gray>299852340", {"Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console, u"{Prefix} <red>Wiki: <gray>https://github.com/jiuwu02/JiuWu-s_Kitchen/wiki", {"Prefix": Prefix})
     ReloadPlugin()
     return True
 
-# 执行插件初始化
 PluginInitialization = InitializePlugin()
 
-# 如果初始化失败，卸载脚本
 if not PluginInitialization:
     ps.script.unloadScript("JiuWu'sKitchen.py")
