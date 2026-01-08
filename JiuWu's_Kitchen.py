@@ -322,7 +322,8 @@ class ConfigManager:
             "Messages.ActionBar.ChoppingBoardTooFast": u"<red>操作太快了! 请稍等片刻再继续!",
             "Messages.PluginLoad.CraftEngine": u"{Prefix} <green>检测到 CraftEngine 插件",
             "Messages.PluginLoad.MMOItems": u"{Prefix} <green>检测到 MMOItems 插件",
-            "Messages.PluginLoad.PlaceholderAPI": u"{Prefix} <green>检测到 PlaceholderAPI 插件"
+            "Messages.PluginLoad.PlaceholderAPI": u"{Prefix} <green>检测到 PlaceholderAPI 插件",
+            "Messages.PluginLoad.NeigeItems": u"{Prefix} <green>检测到 NeigeItems 插件"
         }
 
         for KEY, VALUE in Messages.items(): ConfigManager.setConfigValue(configFile, KEY, VALUE)
@@ -775,6 +776,7 @@ Console = Bukkit.getServer().getConsoleSender()
 CraftEngineAvailable = False
 MMOItemsAvailable = False
 PlaceholderAPIAvailable = False
+NeigeItemsAvailable = False
 
 def ServerPluginLoad():
     """
@@ -790,13 +792,15 @@ def ServerPluginLoad():
         )
         ps.listener.registerListener(InteractionCraftEngineBlock, CustomBlockInteractEvent)
         ps.listener.registerListener(BreakCraftEngineBlock, CustomBlockBreakEvent)
-        ps.listener.registerListener(SteamerBreak, CustomBlockBreakEvent)
     MMOItemsAvailable = Bukkit.getPluginManager().isPluginEnabled("MMOItems")
     if MMOItemsAvailable:
         MiniMessageUtils.sendMessage(Console,Config.getString("Messages.PluginLoad.MMOItems"), {"Prefix": Prefix})
     PlaceholderAPIAvailable = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")
     if PlaceholderAPIAvailable:
         MiniMessageUtils.sendMessage(Console, Config.getString("Messages.PluginLoad.PlaceholderAPI"), {"Prefix": Prefix})
+    NeigeItemsAvailable = Bukkit.getPluginManager().isPluginEnabled("NeigeItems")
+    if NeigeItemsAvailable:
+        MiniMessageUtils.sendMessage(Console, Config.getString("Messages.PluginLoad.NeigeItems"), {"Prefix": Prefix})
 
 def InteractionVanillaBlock(Event): return EventHandler.handleInteraction(Event, "vanilla")
 
@@ -1097,6 +1101,7 @@ class ToolUtils:
     CRAFTENGINE = "craftengine"
     MMOITEMS = "mmoitems"
     MINECRAFT = "minecraft"
+    NEIGEITEMS = "neigeitems"
 
     @staticmethod
     def parseAndExecuteCommand(CommandStr, ExecutePlayer=None, Chance=100, ExecuteCount=1):
@@ -1221,11 +1226,23 @@ class ToolUtils:
             return itemIdentifier == materialToCheck
         else:
             try:
-                if ":" in materialToCheck:
-                    materialName = materialToCheck.split(":")[1]
-                else:
-                    materialName = materialToCheck
-                return Item.getType() == Material.valueOf(materialName.upper())
+                materialName = materialToCheck
+                if " " in materialToCheck:
+                    parts = materialToCheck.split(" ")
+                    if len(parts) >= 2:
+                        if parts[0].lower() == "minecraft":
+                            materialName = parts[1]
+                        else:
+                            return False
+                elif ":" in materialToCheck:
+                    parts = materialToCheck.split(":")
+                    if len(parts) >= 2:
+                        if parts[0].lower() == "minecraft":
+                            materialName = parts[1]
+                        else:
+                            return False
+                materialName = materialName.upper()
+                return Item.getType() == Material.valueOf(materialName)
             except:
                 return False
     
@@ -1306,6 +1323,12 @@ class ToolUtils:
             mmoItemsId = ToolUtils.getMMOItemsItemId(Item)
             if mmoItemsId: 
                 return ToolUtils.MMOITEMS + " " + mmoItemsId
+
+        # 检查NeigeItems物品
+        if NeigeItemsAvailable:
+            neigeItemsId = ToolUtils.getNeigeItemsItemId(Item)
+            if neigeItemsId: 
+                return ToolUtils.NEIGEITEMS + " " + str(neigeItemsId)
         
         # 默认返回原版物品标识
         return ToolUtils.MINECRAFT + " " + Item.getType().name()
@@ -1343,6 +1366,25 @@ class ToolUtils:
                 ItemId = NbtItem.getString("MMOITEMS_ITEM_ID")
                 return str(ItemType) + ":" + str(ItemId)
         except Exception: return None
+    
+    @staticmethod
+    def getNeigeItemsItemId(Item):
+        """获取NeigeItems物品ID
+
+        参数:
+            Item: 物品对象
+
+        返回:
+            str: 物品ID
+        """
+        try:
+            from pers.neige.neigeitems.utils.ItemUtils import ItemUtils  # type: ignore
+            itemInfo = ItemUtils.isNiItem(Item)
+            if itemInfo:
+                return itemInfo.getId()
+        except Exception: 
+            return None
+        return None
 
     @staticmethod
     def createItemStack(ItemKey, Amount=1):
@@ -1351,7 +1393,9 @@ class ToolUtils:
         Parts = ItemKey.split(" ")
         if len(Parts) < 1: return None
         ItemType = Parts[0]
-        if ItemType == ToolUtils.MINECRAFT: 
+        if ItemType == ToolUtils.NEIGEITEMS and NeigeItemsAvailable:
+            return ToolUtils.createNeigeItemsItem(Parts, Amount)
+        elif ItemType == ToolUtils.MINECRAFT: 
             return ToolUtils.createMinecraftItem(Parts, Amount)
         elif ItemType == ToolUtils.CRAFTENGINE and CraftEngineAvailable:
             return ToolUtils.createCraftEngineItem(Parts, Amount)
@@ -1435,6 +1479,30 @@ class ToolUtils:
         return None
 
     @staticmethod
+    def createNeigeItemsItem(Parts, Amount):
+        """创建NeigeItems物品
+
+        参数:
+            Parts: 物品键分割后的列表
+            Amount: 数量
+
+        返回:
+            ItemStack: 物品栈
+        """
+        try:
+            from pers.neige.neigeitems.manager.ItemManager import ItemManager  # type: ignore
+            if len(Parts) > 1:
+                itemId = Parts[1]
+                if ItemManager.hasItem(itemId):
+                    itemStack = ItemManager.getItemStack(itemId, None, None)
+                    if itemStack:
+                        itemStack.setAmount(Amount)
+                        return itemStack
+        except Exception as e:
+            return None
+        return None
+
+    @staticmethod
     def getItemDisplayName(Item):
         """获取物品的显示名称
 
@@ -1458,6 +1526,13 @@ class ToolUtils:
                 NbtItem = NBTItem.get(Item)
                 if NbtItem.hasType(): return NbtItem.getString("MMOITEMS_NAME")
             except Exception: pass
+        # 检查NeigeItems物品
+        if NeigeItemsAvailable:
+            try:
+                from pers.neige.neigeitems.utils.ItemUtils import ItemUtils  # type: ignore
+                return ItemUtils.getItemName(Item)
+            except Exception: 
+                pass
         # 默认返回原版物品名称
         return Component.translatable(Item.translationKey())
 
@@ -3266,7 +3341,7 @@ def InitializePlugin():
             if (coolingTime > currentTime) or (moisture > 0) or (steam > 0):
                 StartSteamerTimer()
                 break
-    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"), {"Version": "v1.3.1", "Prefix": Prefix})
+    MiniMessageUtils.sendMessage(Console, Config.getString("Messages.Load"), {"Version": "v1.3.3", "Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console, u"{Prefix} <red>Discord: <gray>https://discord.gg/v39k5Vvzgb", {"Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console, u"{Prefix} <red>QQ群: <gray>299852340", {"Prefix": Prefix})
     MiniMessageUtils.sendMessage(Console, u"{Prefix} <red>Wiki: <gray>https://github.com/jiuwu02/JiuWu-s_Kitchen/wiki", {"Prefix": Prefix})
@@ -3276,4 +3351,4 @@ def InitializePlugin():
 PluginInitialization = InitializePlugin()
 
 if not PluginInitialization:
-    ps.script.unloadScript("JiuWu'sKitchen.py")
+    ps.script.unloadScript("JiuWu's_Kitchen.py")
